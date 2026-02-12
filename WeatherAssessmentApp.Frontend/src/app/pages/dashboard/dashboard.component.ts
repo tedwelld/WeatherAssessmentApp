@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { combineLatest, map, startWith } from 'rxjs';
 import { CurrentWeatherDto, LocationDto, TemperatureUnit, UserPreferencesDto } from '../../core/models';
+import { WeatherVisualService } from '../../core/services/weather-visual.service';
 import { WeatherStoreService } from '../../core/store/weather-store.service';
 
 interface DashboardViewModel {
@@ -25,6 +26,7 @@ interface DashboardViewModel {
 export class DashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(WeatherStoreService);
+  private readonly weatherVisual = inject(WeatherVisualService);
 
   readonly addCityForm = this.fb.group({
     city: ['', [Validators.required, Validators.maxLength(128)]],
@@ -79,6 +81,27 @@ export class DashboardComponent implements OnInit {
             refreshIntervalMinutes: preferences.refreshIntervalMinutes
           },
           { emitEvent: false }
+        );
+      });
+
+    combineLatest([this.store.locations$, this.store.currentWeather$])
+      .pipe(takeUntilDestroyed())
+      .subscribe(([locations, weatherItems]) => {
+        const selectedLocation = locations.find((location) => location.isFavorite) ?? locations[0];
+        const selectedWeather = selectedLocation
+          ? weatherItems.find((weather) => weather.locationId === selectedLocation.id)
+          : weatherItems[0];
+
+        if (!selectedWeather) {
+          this.weatherVisual.reset();
+          return;
+        }
+
+        this.weatherVisual.applyFromCurrent(
+          selectedWeather.summary,
+          selectedWeather.temperature,
+          selectedWeather.windSpeed,
+          selectedWeather.humidity
         );
       });
   }

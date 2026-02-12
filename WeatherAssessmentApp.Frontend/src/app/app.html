@@ -1,4 +1,15 @@
-<div class="sky-canvas" aria-hidden="true">
+<div
+  class="sky-canvas"
+  aria-hidden="true"
+  *ngIf="visual$ | async as visual"
+  [attr.data-mode]="visual.mode"
+  [style.--rain-opacity]="visual.rainOpacity"
+  [style.--rain-duration]="visual.rainDuration"
+  [style.--cloud-opacity]="visual.cloudOpacity"
+  [style.--wind-opacity]="visual.windOpacity"
+  [style.--wind-duration]="visual.windDuration"
+  [style.--aurora-opacity]="visual.auroraOpacity"
+  [style.--lightning-opacity]="visual.lightningOpacity">
   <div class="sun-halo"></div>
   <div class="aurora aurora-one"></div>
   <div class="aurora aurora-two"></div>
@@ -7,6 +18,7 @@
   <div class="cloud cloud-three"></div>
   <div class="rain-field"></div>
   <div class="wind-lines"></div>
+  <div class="lightning-flash"></div>
 </div>
 
 <div class="app-shell">

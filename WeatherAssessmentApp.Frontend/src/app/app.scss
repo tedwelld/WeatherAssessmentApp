@@ -52,6 +52,13 @@
 }
 
 .sky-canvas {
+  --rain-opacity: 0.18;
+  --rain-duration: 1.7s;
+  --cloud-opacity: 0.55;
+  --wind-opacity: 0.42;
+  --wind-duration: 8s;
+  --aurora-opacity: 0.42;
+  --lightning-opacity: 0;
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -76,7 +83,7 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(54px);
-  opacity: 0.42;
+  opacity: var(--aurora-opacity);
 }
 
 .aurora-one {
@@ -105,6 +112,7 @@
     0 12px 34px rgba(42, 77, 106, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   filter: blur(0.3px);
+  opacity: var(--cloud-opacity);
 }
 
 .cloud::before,
@@ -142,7 +150,7 @@
   height: min(5.2vw, 78px);
   top: 32%;
   left: -30%;
-  opacity: 0.72;
+  opacity: calc(var(--cloud-opacity) * 0.9);
   animation: floatCloud 52s linear infinite;
   animation-delay: -13s;
 }
@@ -152,7 +160,7 @@
   height: min(5.6vw, 82px);
   top: 55%;
   left: -27%;
-  opacity: 0.55;
+  opacity: calc(var(--cloud-opacity) * 0.75);
   animation: floatCloud 62s linear infinite;
   animation-delay: -26s;
 }
@@ -169,8 +177,8 @@
     rgba(214, 239, 255, 0) 23px,
     rgba(214, 239, 255, 0) 52px
   );
-  opacity: 0.33;
-  animation: rainSlide 1.5s linear infinite;
+  opacity: var(--rain-opacity);
+  animation: rainSlide var(--rain-duration) linear infinite;
 }
 
 .wind-lines {
@@ -180,7 +188,21 @@
     linear-gradient(90deg, transparent 0%, transparent 35%, rgba(188, 233, 255, 0.18) 42%, transparent 55%),
     linear-gradient(90deg, transparent 10%, transparent 55%, rgba(215, 244, 255, 0.16) 64%, transparent 76%);
   mix-blend-mode: screen;
-  animation: windSweep 8s ease-in-out infinite;
+  opacity: var(--wind-opacity);
+  animation: windSweep var(--wind-duration) ease-in-out infinite;
+}
+
+.lightning-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 68% 8%, rgba(255, 255, 255, 0.95), rgba(220, 240, 255, 0.2), transparent 52%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.sky-canvas[data-mode='storm'] .lightning-flash {
+  animation: lightningPulse 4.3s linear infinite;
 }
 
 @keyframes floatCloud {
@@ -237,6 +259,30 @@
   50% {
     transform: translateX(2%);
     opacity: 0.75;
+  }
+}
+
+@keyframes lightningPulse {
+  0%,
+  84%,
+  100% {
+    opacity: 0;
+  }
+
+  85% {
+    opacity: calc(var(--lightning-opacity) * 0.8);
+  }
+
+  86% {
+    opacity: 0;
+  }
+
+  87% {
+    opacity: var(--lightning-opacity);
+  }
+
+  90% {
+    opacity: 0;
   }
 }
 

@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BehaviorSubject, finalize, map, switchMap, tap } from 'rxjs';
 import { WeatherForecastDto } from '../../core/models';
+import { WeatherVisualService } from '../../core/services/weather-visual.service';
 import { WeatherStoreService } from '../../core/store/weather-store.service';
 
 @Component({
@@ -16,6 +17,7 @@ import { WeatherStoreService } from '../../core/store/weather-store.service';
 export class ForecastComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(WeatherStoreService);
+  private readonly weatherVisual = inject(WeatherVisualService);
 
   readonly loading$ = new BehaviorSubject<boolean>(true);
   readonly forecast$ = new BehaviorSubject<WeatherForecastDto | null>(null);
@@ -24,11 +26,18 @@ export class ForecastComponent implements OnInit {
   ngOnInit(): void {
     this.route.paramMap
       .pipe(
-        tap(() => this.loading$.next(true)),
+        tap(() => {
+          this.loading$.next(true);
+          this.forecast$.next(null);
+        }),
         takeUntilDestroyed(),
         map((params) => Number(params.get('id'))),
-        switchMap((id) => this.store.getForecast(id)),
-        finalize(() => this.loading$.next(false))
+        switchMap((id) =>
+          this.store.getForecast(id).pipe(
+            tap((forecast) => this.weatherVisual.applyFromForecast(forecast.items)),
+            finalize(() => this.loading$.next(false))
+          )
+        )
       )
       .subscribe({
         next: (forecast) => {
