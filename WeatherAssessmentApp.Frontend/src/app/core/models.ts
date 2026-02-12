@@ -62,6 +62,13 @@ export interface WeatherTimelineDto {
   nextFiveDays: DailyWeatherPointDto[];
 }
 
+export interface NextFiveDayForecastDto {
+  city: string;
+  country: string;
+  units: TemperatureUnit;
+  days: DailyWeatherPointDto[];
+}
+
 export interface UserPreferencesDto {
   id: number;
   units: TemperatureUnit;

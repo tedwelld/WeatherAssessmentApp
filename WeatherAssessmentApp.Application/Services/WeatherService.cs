@@ -117,14 +117,14 @@ public sealed class WeatherService : IWeatherService
 
         var units = location.UserPreferences?.Units ?? TemperatureUnit.Metric;
         var today = DateTime.UtcNow.Date;
-        var historicalStart = today.AddDays(-5);
 
         var historicalDaily = location.WeatherSnapshots
-            .Where(snapshot => snapshot.ObservedAtUtc >= historicalStart && snapshot.ObservedAtUtc < today)
+            .Where(snapshot => snapshot.ObservedAtUtc.Date < today)
             .GroupBy(snapshot => snapshot.ObservedAtUtc.Date)
             .Select(group => group.OrderByDescending(snapshot => snapshot.ObservedAtUtc).First())
-            .OrderBy(snapshot => snapshot.ObservedAtUtc)
-            .TakeLast(5)
+            .OrderByDescending(snapshot => snapshot.ObservedAtUtc.Date)
+            .Take(5)
+            .OrderBy(snapshot => snapshot.ObservedAtUtc.Date)
             .Select(snapshot => new DailyWeatherPointDto(
                 snapshot.ObservedAtUtc.Date,
                 snapshot.Temperature,
@@ -138,7 +138,7 @@ public sealed class WeatherService : IWeatherService
         var forecast = await _weatherProviderClient.GetFiveDayForecastByCityAsync(location.City, location.Country, units, cancellationToken);
 
         var futureDaily = forecast
-            .Where(item => item.ForecastAtUtc.Date > today)
+            .Where(item => item.ForecastAtUtc.Date >= today)
             .GroupBy(item => item.ForecastAtUtc.Date)
             .OrderBy(group => group.Key)
             .Take(5)
@@ -172,6 +172,52 @@ public sealed class WeatherService : IWeatherService
             units,
             historicalDaily,
             futureDaily);
+    }
+
+    public async Task<NextFiveDayForecastDto> GetNextFiveDayForecastByLocationIdAsync(int locationId, CancellationToken cancellationToken = default)
+    {
+        var location = await _locationRepository.GetByIdAsync(locationId, cancellationToken)
+            ?? throw new NotFoundException($"Location with id '{locationId}' was not found.");
+
+        var units = location.UserPreferences?.Units ?? TemperatureUnit.Metric;
+        var today = DateTime.UtcNow.Date;
+
+        var forecast = await _weatherProviderClient.GetFiveDayForecastByCityAsync(location.City, location.Country, units, cancellationToken);
+
+        var days = forecast
+            .Where(item => item.ForecastAtUtc.Date >= today)
+            .GroupBy(item => item.ForecastAtUtc.Date)
+            .OrderBy(group => group.Key)
+            .Take(5)
+            .Select(group =>
+            {
+                var items = group.ToList();
+                var representative = items
+                    .OrderBy(item => Math.Abs(item.ForecastAtUtc.Hour - 12))
+                    .ThenBy(item => item.ForecastAtUtc)
+                    .First();
+
+                var averageTemperature = items.Average(item => item.Temperature);
+                var averageFeelsLike = items.Average(item => item.FeelsLike);
+                var averageHumidity = (int)Math.Round(items.Average(item => item.Humidity));
+                var averageWind = items.Average(item => item.WindSpeed);
+
+                return new DailyWeatherPointDto(
+                    group.Key,
+                    decimal.Round(averageTemperature, 2),
+                    decimal.Round(averageFeelsLike, 2),
+                    averageHumidity,
+                    decimal.Round(averageWind, 2),
+                    representative.Summary,
+                    representative.IconCode);
+            })
+            .ToList();
+
+        return new NextFiveDayForecastDto(
+            location.City,
+            location.Country,
+            units,
+            days);
     }
 
     private async Task<UserPreferences> GetDefaultPreferencesAsync(CancellationToken cancellationToken)

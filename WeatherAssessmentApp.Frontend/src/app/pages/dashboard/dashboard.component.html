@@ -3,7 +3,7 @@
     <div>
       <p class="eyebrow">Weather Data Integration Platform</p>
       <h1>Liquid Operations Deck</h1>
-      <p class="subtitle">Track live weather, sync historical snapshots, and inspect city forecasts in one glass cockpit.</p>
+      <p class="subtitle">Track live weather, sync historical snapshots, and inspect multi-day forecasts in one cockpit.</p>
     </div>
     <button type="button" class="btn btn-strong action-button" (click)="refreshAll()" [disabled]="vm.loading">Refresh All</button>
   </section>
@@ -12,6 +12,80 @@
     <p><span>Tracked Cities</span><strong>{{ vm.locations.length }}</strong></p>
     <p><span>Units</span><strong>{{ prefs.units }}</strong></p>
     <p><span>Sync Interval</span><strong>{{ prefs.refreshIntervalMinutes }} min</strong></p>
+  </section>
+
+  <section class="panel country-forecasts glass-panel">
+    <header>
+      <h2>Country Forecasts</h2>
+      <p class="hint">Click a country card to load its 5-day forecast, icons, and temperature trend.</p>
+    </header>
+    <div class="country-grid" *ngIf="vm.countryCards.length > 0; else noCountryCards">
+      <article class="country-card" *ngFor="let card of vm.countryCards; trackBy: trackByCountry">
+        <div class="country-header">
+          <div>
+            <h3>{{ card.country }}</h3>
+            <p>{{ card.locationsCount }} tracked cities</p>
+          </div>
+          <button type="button" class="btn small ghost" (click)="toggleCountryForecast(card)" [disabled]="vm.loading || !card.locationId">
+            {{ vm.expandedCountries[card.country] ? 'Hide forecast' : 'View 5-day forecast' }}
+          </button>
+        </div>
+
+        <div class="country-body" *ngIf="vm.expandedCountries[card.country]">
+          <p class="state-text" *ngIf="vm.countryForecastLoading[card.country]">Loading forecast...</p>
+          <ng-container *ngIf="!vm.countryForecastLoading[card.country] && vm.countryForecasts[card.country] as state">
+            <p class="state-text" *ngIf="state.forecast.days.length === 0">No forecast data available.</p>
+            <div class="forecast-days" *ngIf="state.forecast.days.length > 0">
+              <article class="forecast-day" *ngFor="let day of state.forecast.days">
+                <p class="day-label">{{ formatDayLabel(day.dateUtc) }}</p>
+                <img [src]="getIconUrl(day.iconCode)" [alt]="day.summary" />
+                <p class="temp">{{ day.temperature | number: '1.0-1' }}&deg;{{ getTempUnit(state.forecast.units) }}</p>
+                <p class="summary">{{ day.summary }}</p>
+              </article>
+            </div>
+
+            <div class="forecast-chart" *ngIf="state.forecast.days.length > 0">
+              <svg class="line-chart" [attr.viewBox]="'0 0 ' + state.chart.width + ' ' + state.chart.height" role="img" aria-label="5-day temperature trend">
+                <g class="grid">
+                  <line *ngFor="let grid of state.chart.gridLines" [attr.x1]="state.chart.padding" [attr.x2]="state.chart.width - state.chart.padding" [attr.y1]="grid.y" [attr.y2]="grid.y"></line>
+                  <text *ngFor="let grid of state.chart.gridLines" class="y-label" [attr.x]="12" [attr.y]="grid.y + 4">{{ grid.label }}</text>
+                </g>
+
+                <g class="axis">
+                  <line [attr.x1]="state.chart.padding" [attr.x2]="state.chart.width - state.chart.padding" [attr.y1]="state.chart.height - state.chart.padding" [attr.y2]="state.chart.height - state.chart.padding"></line>
+                </g>
+
+                <g class="series" *ngFor="let series of state.chart.series">
+                  <polyline class="series-line" [attr.points]="series.points" [attr.stroke]="series.color"></polyline>
+                  <circle *ngFor="let dot of series.dots" class="series-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" [attr.r]="4" [attr.fill]="series.color"></circle>
+                </g>
+
+                <g class="x-axis">
+                  <text *ngFor="let point of state.chart.xAxis" class="x-label" [attr.x]="point.x" [attr.y]="state.chart.height - state.chart.padding + 18">
+                    {{ point.label }}
+                  </text>
+                </g>
+
+                <text class="axis-title" [attr.x]="state.chart.width / 2" [attr.y]="state.chart.height - 6">Days</text>
+                <text class="axis-title" [attr.x]="16" [attr.y]="state.chart.height / 2" [attr.transform]="'rotate(-90 16 ' + state.chart.height / 2 + ')'">
+                  Temperature
+                </text>
+              </svg>
+
+              <div class="legend">
+                <div class="legend-item" *ngFor="let series of state.chart.series">
+                  <span class="legend-swatch" [style.background]="series.color"></span>
+                  <span>{{ series.label }}</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </article>
+    </div>
+    <ng-template #noCountryCards>
+      <p class="hint">Add and sync locations to see country forecasts.</p>
+    </ng-template>
   </section>
 
   <section class="panel grid two-col glass-panel">

@@ -71,6 +71,171 @@ h1 {
   font-weight: 700;
 }
 
+.country-forecasts {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.country-forecasts header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.country-forecasts h2 {
+  margin: 0;
+}
+
+.country-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.95rem;
+}
+
+.country-card {
+  border-radius: 18px;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(233, 247, 255, 0.45));
+  border: 1px solid rgba(200, 230, 248, 0.6);
+  display: grid;
+  gap: 0.85rem;
+}
+
+.country-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.country-header h3 {
+  margin: 0;
+  color: #173e58;
+  font-size: 1.1rem;
+}
+
+.country-header p {
+  margin: 0.2rem 0 0;
+  color: rgba(21, 65, 92, 0.7);
+}
+
+.country-body {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.forecast-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+
+.forecast-day {
+  border-radius: 12px;
+  padding: 0.6rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(237, 249, 255, 0.5));
+  border: 1px solid rgba(196, 228, 246, 0.6);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.25rem;
+}
+
+.forecast-day img {
+  width: 46px;
+  height: 46px;
+}
+
+.forecast-day .day-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(18, 59, 85, 0.7);
+}
+
+.forecast-day .temp {
+  margin: 0;
+  font-weight: 700;
+  color: #173b56;
+  font-size: 1.1rem;
+}
+
+.forecast-day .summary {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(18, 59, 85, 0.7);
+  text-transform: capitalize;
+}
+
+.forecast-chart {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.line-chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid line {
+  stroke: rgba(18, 59, 85, 0.16);
+  stroke-width: 1;
+}
+
+.axis line {
+  stroke: rgba(18, 59, 85, 0.35);
+  stroke-width: 1.2;
+}
+
+.series-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.series-dot {
+  stroke: #ffffff;
+  stroke-width: 1.4;
+}
+
+.x-label,
+.y-label {
+  font-size: 10px;
+  fill: rgba(18, 59, 85, 0.72);
+}
+
+.x-label {
+  text-anchor: middle;
+}
+
+.axis-title {
+  font-size: 11px;
+  font-weight: 600;
+  fill: rgba(18, 59, 85, 0.78);
+  text-anchor: middle;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: rgba(18, 59, 85, 0.78);
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
 .grid.two-col {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -152,7 +317,8 @@ select:focus {
   font-size: 0.85rem;
 }
 
-.hint {
+.hint,
+.state-text {
   color: rgba(20, 63, 88, 0.6);
   margin: 0;
   font-size: 0.89rem;

@@ -43,6 +43,13 @@ public sealed class WeatherController : ControllerBase
         return Ok(timeline);
     }
 
+    [HttpGet("next-five-days/{locationId:int}")]
+    public async Task<IActionResult> GetNextFiveDaysByLocation(int locationId, CancellationToken cancellationToken)
+    {
+        var forecast = await _weatherService.GetNextFiveDayForecastByLocationIdAsync(locationId, cancellationToken);
+        return Ok(forecast);
+    }
+
     [HttpGet("by-city/current")]
     public async Task<IActionResult> GetCurrentByCity(
         [FromQuery] string city,

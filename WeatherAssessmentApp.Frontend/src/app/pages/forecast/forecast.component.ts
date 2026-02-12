@@ -3,7 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BehaviorSubject, finalize, map, switchMap, tap } from 'rxjs';
-import { ForecastItemDto, WeatherTimelineDto } from '../../core/models';
+import { ForecastItemDto, NextFiveDayForecastDto } from '../../core/models';
 import { WeatherVisualService } from '../../core/services/weather-visual.service';
 import { WeatherStoreService } from '../../core/store/weather-store.service';
 
@@ -20,7 +20,7 @@ export class ForecastComponent implements OnInit {
   private readonly weatherVisual = inject(WeatherVisualService);
 
   readonly loading$ = new BehaviorSubject<boolean>(true);
-  readonly forecast$ = new BehaviorSubject<WeatherTimelineDto | null>(null);
+  readonly forecast$ = new BehaviorSubject<NextFiveDayForecastDto | null>(null);
   readonly error$ = this.store.error$;
 
   ngOnInit(): void {
@@ -33,10 +33,10 @@ export class ForecastComponent implements OnInit {
         takeUntilDestroyed(),
         map((params) => Number(params.get('id'))),
         switchMap((id) =>
-          this.store.getTimeline(id).pipe(
+          this.store.getNextFiveDays(id).pipe(
             tap((forecast) =>
               this.weatherVisual.applyFromForecast(
-                forecast.nextFiveDays.map<ForecastItemDto>((item) => ({
+                forecast.days.map<ForecastItemDto>((item) => ({
                   forecastAtUtc: item.dateUtc,
                   temperature: item.temperature,
                   feelsLike: item.feelsLike,

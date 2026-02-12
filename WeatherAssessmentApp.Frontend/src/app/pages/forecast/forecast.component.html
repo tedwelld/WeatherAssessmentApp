@@ -3,28 +3,13 @@
 
   <header class="glass-panel">
     <h1>{{ forecast.city }}, {{ forecast.country }}</h1>
-    <p>Previous 5 days and next 5 days weather timeline</p>
+    <p>Next 5 days weather outlook</p>
   </header>
-
-  <section class="timeline-section">
-    <h2>Previous 5 Days</h2>
-    <div class="forecast-grid">
-      <article *ngFor="let item of forecast.previousFiveDays" class="forecast-card glass-panel">
-        <h3>{{ formatDate(item.dateUtc) }}</h3>
-        <p class="temp">{{ item.temperature | number: '1.0-1' }}&deg;{{ getUnitSymbol(forecast.units) }}</p>
-        <p class="summary">{{ item.summary }}</p>
-        <p>Feels like {{ item.feelsLike | number: '1.0-1' }}&deg;{{ getUnitSymbol(forecast.units) }}</p>
-        <p>Humidity {{ item.humidity }}%</p>
-        <p>Wind {{ item.windSpeed | number: '1.0-1' }} {{ getWindUnit(forecast.units) }}</p>
-      </article>
-      <p class="state-text" *ngIf="forecast.previousFiveDays.length === 0">Not enough synced history yet for this city.</p>
-    </div>
-  </section>
 
   <section class="timeline-section">
     <h2>Next 5 Days</h2>
     <div class="forecast-grid">
-      <article *ngFor="let item of forecast.nextFiveDays" class="forecast-card glass-panel">
+      <article *ngFor="let item of forecast.days" class="forecast-card glass-panel">
         <h3>{{ formatDate(item.dateUtc) }}</h3>
         <p class="temp">{{ item.temperature | number: '1.0-1' }}&deg;{{ getUnitSymbol(forecast.units) }}</p>
         <p class="summary">{{ item.summary }}</p>
@@ -32,7 +17,7 @@
         <p>Humidity {{ item.humidity }}%</p>
         <p>Wind {{ item.windSpeed | number: '1.0-1' }} {{ getWindUnit(forecast.units) }}</p>
       </article>
-      <p class="state-text" *ngIf="forecast.nextFiveDays.length === 0">No forecast data available.</p>
+      <p class="state-text" *ngIf="forecast.days.length === 0">No forecast data available.</p>
     </div>
   </section>
 </main>

@@ -6,6 +6,7 @@ import {
   CurrentWeatherDto,
   LocationDto,
   WeatherTimelineDto,
+  NextFiveDayForecastDto,
   UpdateLocationRequest,
   UpdateUserPreferencesRequest,
   UserPreferencesDto,
@@ -128,6 +129,11 @@ export class WeatherStoreService {
   getTimeline(locationId: number): Observable<WeatherTimelineDto> {
     this.errorSubject.next(null);
     return this.api.getTimelineByLocation(locationId).pipe(catchError((error) => this.handleError(error)));
+  }
+
+  getNextFiveDays(locationId: number): Observable<NextFiveDayForecastDto> {
+    this.errorSubject.next(null);
+    return this.api.getNextFiveDaysByLocation(locationId).pipe(catchError((error) => this.handleError(error)));
   }
 
   getWeatherForLocation(locationId: number): Observable<CurrentWeatherDto | null> {

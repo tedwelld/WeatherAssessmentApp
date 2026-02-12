@@ -32,3 +32,9 @@ public sealed record WeatherTimelineDto(
     TemperatureUnit Units,
     IReadOnlyList<DailyWeatherPointDto> PreviousFiveDays,
     IReadOnlyList<DailyWeatherPointDto> NextFiveDays);
+
+public sealed record NextFiveDayForecastDto(
+    string City,
+    string Country,
+    TemperatureUnit Units,
+    IReadOnlyList<DailyWeatherPointDto> Days);
