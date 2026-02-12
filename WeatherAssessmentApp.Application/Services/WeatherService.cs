@@ -110,6 +110,70 @@ public sealed class WeatherService : IWeatherService
             forecast.Select(x => new ForecastItemDto(x.ForecastAtUtc, x.Temperature, x.FeelsLike, x.Humidity, x.Summary, x.IconCode, x.WindSpeed)).ToList());
     }
 
+    public async Task<WeatherTimelineDto> GetTimelineByLocationIdAsync(int locationId, CancellationToken cancellationToken = default)
+    {
+        var location = await _locationRepository.GetByIdAsync(locationId, cancellationToken)
+            ?? throw new NotFoundException($"Location with id '{locationId}' was not found.");
+
+        var units = location.UserPreferences?.Units ?? TemperatureUnit.Metric;
+        var today = DateTime.UtcNow.Date;
+        var historicalStart = today.AddDays(-5);
+
+        var historicalDaily = location.WeatherSnapshots
+            .Where(snapshot => snapshot.ObservedAtUtc >= historicalStart && snapshot.ObservedAtUtc < today)
+            .GroupBy(snapshot => snapshot.ObservedAtUtc.Date)
+            .Select(group => group.OrderByDescending(snapshot => snapshot.ObservedAtUtc).First())
+            .OrderBy(snapshot => snapshot.ObservedAtUtc)
+            .TakeLast(5)
+            .Select(snapshot => new DailyWeatherPointDto(
+                snapshot.ObservedAtUtc.Date,
+                snapshot.Temperature,
+                snapshot.FeelsLike,
+                snapshot.Humidity,
+                snapshot.WindSpeed,
+                snapshot.Summary,
+                snapshot.IconCode))
+            .ToList();
+
+        var forecast = await _weatherProviderClient.GetFiveDayForecastByCityAsync(location.City, location.Country, units, cancellationToken);
+
+        var futureDaily = forecast
+            .Where(item => item.ForecastAtUtc.Date > today)
+            .GroupBy(item => item.ForecastAtUtc.Date)
+            .OrderBy(group => group.Key)
+            .Take(5)
+            .Select(group =>
+            {
+                var items = group.ToList();
+                var representative = items
+                    .OrderBy(item => Math.Abs(item.ForecastAtUtc.Hour - 12))
+                    .ThenBy(item => item.ForecastAtUtc)
+                    .First();
+
+                var averageTemperature = items.Average(item => item.Temperature);
+                var averageFeelsLike = items.Average(item => item.FeelsLike);
+                var averageHumidity = (int)Math.Round(items.Average(item => item.Humidity));
+                var averageWind = items.Average(item => item.WindSpeed);
+
+                return new DailyWeatherPointDto(
+                    group.Key,
+                    decimal.Round(averageTemperature, 2),
+                    decimal.Round(averageFeelsLike, 2),
+                    averageHumidity,
+                    decimal.Round(averageWind, 2),
+                    representative.Summary,
+                    representative.IconCode);
+            })
+            .ToList();
+
+        return new WeatherTimelineDto(
+            location.City,
+            location.Country,
+            units,
+            historicalDaily,
+            futureDaily);
+    }
+
     private async Task<UserPreferences> GetDefaultPreferencesAsync(CancellationToken cancellationToken)
     {
         var preferences = await _preferencesRepository.GetDefaultAsync(cancellationToken);

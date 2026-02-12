@@ -44,6 +44,18 @@ header p {
   gap: 0.8rem;
 }
 
+.timeline-section {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.timeline-section h2 {
+  margin: 0;
+  color: #173b56;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
 .forecast-card {
   border-radius: 16px;
   padding: 0.95rem;

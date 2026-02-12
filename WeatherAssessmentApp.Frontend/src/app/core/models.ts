@@ -44,6 +44,24 @@ export interface WeatherForecastDto {
   items: ForecastItemDto[];
 }
 
+export interface DailyWeatherPointDto {
+  dateUtc: string;
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  summary: string;
+  iconCode: string;
+}
+
+export interface WeatherTimelineDto {
+  city: string;
+  country: string;
+  units: TemperatureUnit;
+  previousFiveDays: DailyWeatherPointDto[];
+  nextFiveDays: DailyWeatherPointDto[];
+}
+
 export interface UserPreferencesDto {
   id: number;
   units: TemperatureUnit;

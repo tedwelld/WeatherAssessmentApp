@@ -9,6 +9,8 @@
   min-height: 100vh;
   position: relative;
   z-index: 2;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
 }
 
 .glass-nav {
@@ -33,6 +35,16 @@
   gap: 1rem;
   padding: 0.9rem 1.2rem;
   border-radius: 18px;
+}
+
+.app-footer {
+  margin: 0.8rem 1rem 1rem;
+  border-radius: 18px;
+  padding: 0.7rem 1rem;
+  text-align: center;
+  color: rgba(20, 58, 80, 0.84);
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
 }
 
 .top-nav p {

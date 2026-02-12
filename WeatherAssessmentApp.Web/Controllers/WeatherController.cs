@@ -36,6 +36,13 @@ public sealed class WeatherController : ControllerBase
         return Ok(forecast);
     }
 
+    [HttpGet("timeline/{locationId:int}")]
+    public async Task<IActionResult> GetTimelineByLocation(int locationId, CancellationToken cancellationToken)
+    {
+        var timeline = await _weatherService.GetTimelineByLocationIdAsync(locationId, cancellationToken);
+        return Ok(timeline);
+    }
+
     [HttpGet("by-city/current")]
     public async Task<IActionResult> GetCurrentByCity(
         [FromQuery] string city,

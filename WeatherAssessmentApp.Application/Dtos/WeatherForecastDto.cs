@@ -16,3 +16,19 @@ public sealed record WeatherForecastDto(
     string Country,
     TemperatureUnit Units,
     IReadOnlyList<ForecastItemDto> Items);
+
+public sealed record DailyWeatherPointDto(
+    DateTime DateUtc,
+    decimal Temperature,
+    decimal FeelsLike,
+    int Humidity,
+    decimal WindSpeed,
+    string Summary,
+    string IconCode);
+
+public sealed record WeatherTimelineDto(
+    string City,
+    string Country,
+    TemperatureUnit Units,
+    IReadOnlyList<DailyWeatherPointDto> PreviousFiveDays,
+    IReadOnlyList<DailyWeatherPointDto> NextFiveDays);

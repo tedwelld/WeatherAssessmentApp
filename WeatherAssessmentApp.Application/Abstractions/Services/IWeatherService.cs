@@ -10,4 +10,5 @@ public interface IWeatherService
     Task<CurrentWeatherDto> GetCurrentByCityAsync(string city, string? country, TemperatureUnit? units, CancellationToken cancellationToken = default);
     Task<WeatherForecastDto> GetForecastByLocationIdAsync(int locationId, CancellationToken cancellationToken = default);
     Task<WeatherForecastDto> GetForecastByCityAsync(string city, string? country, TemperatureUnit? units, CancellationToken cancellationToken = default);
+    Task<WeatherTimelineDto> GetTimelineByLocationIdAsync(int locationId, CancellationToken cancellationToken = default);
 }

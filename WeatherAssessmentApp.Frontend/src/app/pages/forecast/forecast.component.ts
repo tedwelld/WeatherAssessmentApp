@@ -3,7 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BehaviorSubject, finalize, map, switchMap, tap } from 'rxjs';
-import { WeatherForecastDto } from '../../core/models';
+import { ForecastItemDto, WeatherTimelineDto } from '../../core/models';
 import { WeatherVisualService } from '../../core/services/weather-visual.service';
 import { WeatherStoreService } from '../../core/store/weather-store.service';
 
@@ -20,7 +20,7 @@ export class ForecastComponent implements OnInit {
   private readonly weatherVisual = inject(WeatherVisualService);
 
   readonly loading$ = new BehaviorSubject<boolean>(true);
-  readonly forecast$ = new BehaviorSubject<WeatherForecastDto | null>(null);
+  readonly forecast$ = new BehaviorSubject<WeatherTimelineDto | null>(null);
   readonly error$ = this.store.error$;
 
   ngOnInit(): void {
@@ -33,8 +33,20 @@ export class ForecastComponent implements OnInit {
         takeUntilDestroyed(),
         map((params) => Number(params.get('id'))),
         switchMap((id) =>
-          this.store.getForecast(id).pipe(
-            tap((forecast) => this.weatherVisual.applyFromForecast(forecast.items)),
+          this.store.getTimeline(id).pipe(
+            tap((forecast) =>
+              this.weatherVisual.applyFromForecast(
+                forecast.nextFiveDays.map<ForecastItemDto>((item) => ({
+                  forecastAtUtc: item.dateUtc,
+                  temperature: item.temperature,
+                  feelsLike: item.feelsLike,
+                  humidity: item.humidity,
+                  summary: item.summary,
+                  iconCode: item.iconCode,
+                  windSpeed: item.windSpeed
+                }))
+              )
+            ),
             finalize(() => this.loading$.next(false))
           )
         )
@@ -55,6 +67,10 @@ export class ForecastComponent implements OnInit {
   }
 
   formatDate(value: string): string {
-    return new Date(value).toLocaleString();
+    return new Date(value).toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
   }
 }

@@ -5,6 +5,7 @@ import {
   CreateLocationRequest,
   CurrentWeatherDto,
   LocationDto,
+  WeatherTimelineDto,
   UpdateLocationRequest,
   UpdateUserPreferencesRequest,
   UserPreferencesDto,
@@ -47,6 +48,10 @@ export class WeatherApiService {
 
   getForecastByLocation(locationId: number): Observable<WeatherForecastDto> {
     return this.http.get<WeatherForecastDto>(`${this.apiBaseUrl}/weather/forecast/${locationId}`);
+  }
+
+  getTimelineByLocation(locationId: number): Observable<WeatherTimelineDto> {
+    return this.http.get<WeatherTimelineDto>(`${this.apiBaseUrl}/weather/timeline/${locationId}`);
   }
 
   getPreferences(): Observable<UserPreferencesDto> {

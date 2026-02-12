@@ -22,6 +22,10 @@ Accept: application/json
 GET {{WeatherAssessmentApp_HostAddress}}/api/weather/forecast/1
 Accept: application/json
 
+### Get timeline (previous 5 days + next 5 days) for location id 1
+GET {{WeatherAssessmentApp_HostAddress}}/api/weather/timeline/1
+Accept: application/json
+
 ### Update preferences
 PUT {{WeatherAssessmentApp_HostAddress}}/api/preferences
 Content-Type: application/json
