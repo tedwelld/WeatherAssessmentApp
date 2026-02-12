@@ -3,34 +3,39 @@
 }
 
 .forecast {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 1.6rem;
+  padding: 1.2rem;
   display: grid;
   gap: 1rem;
 }
 
-.back-link {
+.glass-chip {
   width: fit-content;
   text-decoration: none;
-  color: #18454e;
-  border-bottom: 1px solid #18454e;
+  color: #19445f;
+  border: 1px solid rgba(190, 224, 245, 0.7);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(240, 250, 255, 0.42));
+  border-radius: 999px;
+  padding: 0.42rem 0.82rem;
+  box-shadow:
+    0 8px 18px rgba(19, 64, 95, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
 header {
-  background: rgba(255, 255, 255, 0.86);
-  padding: 1rem;
-  border-radius: 16px;
-  border: 1px solid rgba(20, 60, 65, 0.14);
+  border-radius: 20px;
+  padding: 1.1rem;
 }
 
 header h1 {
   margin: 0;
+  color: #12364f;
 }
 
 header p {
-  margin: 0.45rem 0 0;
-  color: #53767b;
+  margin: 0.4rem 0 0;
+  color: rgba(23, 71, 99, 0.7);
 }
 
 .forecast-grid {
@@ -40,33 +45,41 @@ header p {
 }
 
 .forecast-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 14px;
-  border: 1px solid rgba(24, 70, 80, 0.12);
-  padding: 0.9rem;
+  border-radius: 16px;
+  padding: 0.95rem;
 }
 
 .forecast-card h3 {
   margin: 0;
-  font-size: 0.95rem;
-  color: #26474d;
+  font-size: 0.93rem;
+  color: #244c66;
 }
 
 .forecast-card p {
   margin: 0.4rem 0 0;
-  color: #3b5f65;
+  color: rgba(18, 60, 85, 0.76);
+}
+
+.summary {
+  text-transform: capitalize;
 }
 
 .temp {
-  font-size: 1.5rem;
+  font-size: 1.58rem;
   font-weight: 700;
-  color: #173b42;
+  color: #173b56;
 }
 
 .error {
-  color: #92251c;
-  background: #fde9e7;
-  border: 1px solid #e2b0a9;
-  border-radius: 10px;
-  padding: 0.65rem 0.75rem;
+  color: #832218;
+  background: linear-gradient(130deg, rgba(255, 235, 230, 0.92), rgba(255, 215, 205, 0.82));
+  border: 1px solid rgba(198, 96, 74, 0.5);
+  border-radius: 12px;
+  padding: 0.72rem;
+  backdrop-filter: blur(8px);
+}
+
+.state-text {
+  margin: 0;
+  color: rgba(18, 59, 85, 0.7);
 }

@@ -1,30 +1,36 @@
 <main class="dashboard" *ngIf="vm$ | async as vm">
-  <section class="panel intro">
+  <section class="panel intro glass-panel">
     <div>
       <p class="eyebrow">Weather Data Integration Platform</p>
-      <h1>City Weather Operations</h1>
-      <p class="subtitle">Track locations, sync snapshots, and inspect live forecast data from OpenWeatherMap.</p>
+      <h1>Liquid Operations Deck</h1>
+      <p class="subtitle">Track live weather, sync historical snapshots, and inspect city forecasts in one glass cockpit.</p>
     </div>
-    <button type="button" class="btn btn-strong" (click)="refreshAll()" [disabled]="vm.loading">Refresh All</button>
+    <button type="button" class="btn btn-strong action-button" (click)="refreshAll()" [disabled]="vm.loading">Refresh All</button>
   </section>
 
-  <section class="panel grid two-col">
+  <section class="panel metrics glass-panel" *ngIf="vm.preferences as prefs">
+    <p><span>Tracked Cities</span><strong>{{ vm.locations.length }}</strong></p>
+    <p><span>Units</span><strong>{{ prefs.units }}</strong></p>
+    <p><span>Sync Interval</span><strong>{{ prefs.refreshIntervalMinutes }} min</strong></p>
+  </section>
+
+  <section class="panel grid two-col glass-panel">
     <article>
       <h2>Add Location</h2>
       <form [formGroup]="addCityForm" (ngSubmit)="addCity()" class="form-grid">
         <label>
           City
-          <input type="text" formControlName="city" placeholder="e.g. Chicago" />
+          <input class="control-surface" type="text" formControlName="city" placeholder="e.g. Harare" />
         </label>
         <label>
           Country code
-          <input type="text" formControlName="country" placeholder="e.g. US" />
+          <input class="control-surface" type="text" formControlName="country" placeholder="e.g. ZW" />
         </label>
         <label class="checkbox">
           <input type="checkbox" formControlName="favorite" />
           Mark as favorite
         </label>
-        <button type="submit" class="btn" [disabled]="vm.loading">Add City</button>
+        <button type="submit" class="btn action-button" [disabled]="vm.loading">Add City</button>
       </form>
     </article>
 
@@ -33,17 +39,17 @@
       <form [formGroup]="preferencesForm" (ngSubmit)="savePreferences()" class="form-grid">
         <label>
           Units
-          <select formControlName="units">
+          <select class="control-surface" formControlName="units">
             <option value="metric">Metric</option>
             <option value="imperial">Imperial</option>
           </select>
         </label>
         <label>
           Refresh interval (minutes)
-          <input type="number" min="5" max="1440" formControlName="refreshIntervalMinutes" />
+          <input class="control-surface" type="number" min="5" max="1440" formControlName="refreshIntervalMinutes" />
         </label>
-        <p class="hint">Applies to background sync and dashboard rendering defaults.</p>
-        <button type="submit" class="btn" [disabled]="vm.loading">Save Preferences</button>
+        <p class="hint">Applies to background sync and dashboard weather rendering.</p>
+        <button type="submit" class="btn action-button" [disabled]="vm.loading">Save Preferences</button>
       </form>
     </article>
   </section>
@@ -53,20 +59,21 @@
   </section>
 
   <section class="locations">
-    <article class="location-card" *ngFor="let location of vm.locations">
+    <article class="location-card glass-panel" *ngFor="let location of vm.locations">
       <header>
         <div>
           <h3>{{ location.city }}, {{ location.country }}</h3>
           <p>Last sync: {{ formatTimestamp(location.lastSyncedAtUtc) }}</p>
         </div>
-        <button type="button" class="icon-btn" (click)="toggleFavorite(location)">
-          {{ location.isFavorite ? '?' : '?' }}
+        <button type="button" class="icon-btn" (click)="toggleFavorite(location)" [attr.aria-label]="location.isFavorite ? 'Unset favorite' : 'Set favorite'">
+          <span *ngIf="location.isFavorite">&#9733;</span>
+          <span *ngIf="!location.isFavorite">&#9734;</span>
         </button>
       </header>
 
       <div class="current-weather" *ngIf="vm.weatherByLocation[location.id] as weather; else weatherMissing">
         <p class="temp">{{ weather.temperature | number: '1.0-1' }}&deg;{{ getTempUnit(weather.units) }}</p>
-        <p>{{ weather.summary }}</p>
+        <p class="summary">{{ weather.summary }}</p>
         <p>Feels like {{ weather.feelsLike | number: '1.0-1' }}&deg;{{ getTempUnit(weather.units) }}</p>
         <p>Humidity {{ weather.humidity }}% | Wind {{ weather.windSpeed | number: '1.0-1' }} {{ getWindUnit(weather.units) }}</p>
       </div>
@@ -76,7 +83,7 @@
       </ng-template>
 
       <footer>
-        <button type="button" class="btn small" (click)="refreshLocation(location.id)" [disabled]="vm.loading">Refresh</button>
+        <button type="button" class="btn small action-button" (click)="refreshLocation(location.id)" [disabled]="vm.loading">Refresh</button>
         <a class="btn small ghost" [routerLink]="['/forecast', location.id]">Forecast</a>
         <button type="button" class="btn small danger" (click)="deleteLocation(location.id)" [disabled]="vm.loading">Remove</button>
       </footer>

@@ -1,9 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-top: #d5eff4;
-  --bg-bottom: #f6f2e6;
-  --text: #102f36;
+  --ink-strong: #112c42;
+  --ink: rgba(17, 44, 66, 0.88);
+  --ink-soft: rgba(17, 44, 66, 0.68);
+  --glass-bg: linear-gradient(135deg, rgba(245, 253, 255, 0.36), rgba(228, 241, 255, 0.2));
+  --glass-border: rgba(255, 255, 255, 0.52);
+  --glass-shadow:
+    0 22px 54px rgba(8, 37, 61, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+  --action-bg: linear-gradient(135deg, rgba(31, 118, 170, 0.95), rgba(16, 87, 135, 0.92));
+  --action-border: rgba(192, 235, 255, 0.6);
 }
 
 * {
@@ -17,18 +25,66 @@ body {
 }
 
 body {
-  font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
-  color: var(--text);
+  color: var(--ink);
+  font-family: 'Outfit', 'Segoe UI', Tahoma, sans-serif;
   background:
-    radial-gradient(circle at 15% 20%, rgba(18, 118, 142, 0.18), transparent 38%),
-    radial-gradient(circle at 90% 75%, rgba(201, 139, 38, 0.18), transparent 32%),
-    linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+    radial-gradient(circle at 8% 14%, rgba(255, 255, 255, 0.4), transparent 26%),
+    radial-gradient(circle at 88% 18%, rgba(255, 241, 221, 0.45), transparent 30%),
+    linear-gradient(160deg, #9ed7e6 0%, #a8d6ec 22%, #d8e6f7 45%, #f4efe2 100%);
+  background-attachment: fixed;
 }
 
+a,
+button,
 h1,
 h2,
 h3,
-.brand,
+h4 {
+  font-family: 'Sora', 'Segoe UI', Tahoma, sans-serif;
+}
+
+input,
+select,
 button {
-  font-family: 'Space Grotesk', 'Segoe UI', Tahoma, sans-serif;
+  font: inherit;
+}
+
+.glass-panel {
+  backdrop-filter: blur(20px) saturate(145%);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.control-surface {
+  border: 1px solid rgba(200, 230, 248, 0.7);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(242, 251, 255, 0.5));
+  color: var(--ink-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(21, 66, 92, 0.08);
+}
+
+.action-button {
+  border: 1px solid var(--action-border);
+  background: var(--action-bg);
+  color: #f8fdff;
+  box-shadow:
+    0 12px 24px rgba(15, 64, 99, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 28px rgba(15, 64, 99, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+button,
+.btn,
+input,
+select {
+  transition: transform 140ms ease, box-shadow 180ms ease, background 200ms ease;
 }
