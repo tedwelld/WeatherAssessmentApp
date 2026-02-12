@@ -1,0 +1,158 @@
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, EMPTY, Observable, catchError, finalize, forkJoin, map, switchMap, tap } from 'rxjs';
+import { WeatherApiService } from '../services/weather-api.service';
+import {
+  CreateLocationRequest,
+  CurrentWeatherDto,
+  LocationDto,
+  UpdateLocationRequest,
+  UpdateUserPreferencesRequest,
+  UserPreferencesDto,
+  WeatherForecastDto
+} from '../models';
+
+@Injectable({ providedIn: 'root' })
+export class WeatherStoreService {
+  private readonly locationsSubject = new BehaviorSubject<LocationDto[]>([]);
+  private readonly currentWeatherSubject = new BehaviorSubject<CurrentWeatherDto[]>([]);
+  private readonly preferencesSubject = new BehaviorSubject<UserPreferencesDto | null>(null);
+  private readonly isLoadingSubject = new BehaviorSubject<boolean>(false);
+  private readonly errorSubject = new BehaviorSubject<string | null>(null);
+
+  readonly locations$ = this.locationsSubject.asObservable();
+  readonly currentWeather$ = this.currentWeatherSubject.asObservable();
+  readonly preferences$ = this.preferencesSubject.asObservable();
+  readonly isLoading$ = this.isLoadingSubject.asObservable();
+  readonly error$ = this.errorSubject.asObservable();
+
+  constructor(private readonly api: WeatherApiService) {}
+
+  loadInitialData(): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return forkJoin({
+      locations: this.api.getLocations(),
+      weather: this.api.getTrackedCurrentWeather(),
+      preferences: this.api.getPreferences()
+    }).pipe(
+      tap(({ locations, weather, preferences }) => {
+        this.locationsSubject.next(locations);
+        this.currentWeatherSubject.next(weather);
+        this.preferencesSubject.next(preferences);
+      }),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  addLocation(request: CreateLocationRequest): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return this.api.createLocation(request).pipe(
+      switchMap(() => this.refreshState()),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  updateLocation(id: number, request: UpdateLocationRequest): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return this.api.updateLocation(id, request).pipe(
+      switchMap(() => this.refreshState()),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  deleteLocation(id: number): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return this.api.deleteLocation(id).pipe(
+      switchMap(() => this.refreshState()),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  refreshAll(): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return this.api.refreshAll().pipe(
+      switchMap(() => this.refreshState()),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  refreshLocation(id: number): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return this.api.refreshLocation(id).pipe(
+      switchMap(() => this.refreshState()),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  updatePreferences(request: UpdateUserPreferencesRequest): Observable<void> {
+    this.isLoadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    return this.api.updatePreferences(request).pipe(
+      tap((preferences) => this.preferencesSubject.next(preferences)),
+      map(() => void 0),
+      catchError((error) => this.handleError(error)),
+      finalize(() => this.isLoadingSubject.next(false))
+    );
+  }
+
+  getForecast(locationId: number): Observable<WeatherForecastDto> {
+    this.errorSubject.next(null);
+    return this.api.getForecastByLocation(locationId).pipe(catchError((error) => this.handleError(error)));
+  }
+
+  getWeatherForLocation(locationId: number): Observable<CurrentWeatherDto | null> {
+    return this.currentWeather$.pipe(
+      map((weatherItems) => weatherItems.find((item) => item.locationId === locationId) ?? null)
+    );
+  }
+
+  private refreshState(): Observable<void> {
+    return forkJoin({
+      locations: this.api.getLocations(),
+      weather: this.api.getTrackedCurrentWeather(),
+      preferences: this.api.getPreferences()
+    }).pipe(
+      tap(({ locations, weather, preferences }) => {
+        this.locationsSubject.next(locations);
+        this.currentWeatherSubject.next(weather);
+        this.preferencesSubject.next(preferences);
+      }),
+      map(() => void 0),
+      catchError((error) => this.handleError(error))
+    );
+  }
+
+  private handleError(error: any): Observable<never> {
+    const message =
+      error?.error?.message ||
+      error?.error?.Message ||
+      error?.message ||
+      'Unable to complete request.';
+    this.errorSubject.next(message);
+    return EMPTY;
+  }
+}

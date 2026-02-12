@@ -1,0 +1,75 @@
+export type TemperatureUnit = 'Metric' | 'Imperial';
+
+export interface LocationDto {
+  id: number;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  isFavorite: boolean;
+  lastSyncedAtUtc: string | null;
+  units: TemperatureUnit;
+}
+
+export interface CurrentWeatherDto {
+  locationId: number | null;
+  city: string;
+  country: string;
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  pressure: number;
+  windSpeed: number;
+  summary: string;
+  iconCode: string;
+  observedAtUtc: string;
+  units: TemperatureUnit;
+  lastSyncedAtUtc: string | null;
+}
+
+export interface ForecastItemDto {
+  forecastAtUtc: string;
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  summary: string;
+  iconCode: string;
+  windSpeed: number;
+}
+
+export interface WeatherForecastDto {
+  city: string;
+  country: string;
+  units: TemperatureUnit;
+  items: ForecastItemDto[];
+}
+
+export interface UserPreferencesDto {
+  id: number;
+  units: TemperatureUnit;
+  refreshIntervalMinutes: number;
+  updatedAtUtc: string;
+}
+
+export interface CreateLocationRequest {
+  city: string;
+  country?: string | null;
+  isFavorite?: boolean;
+}
+
+export interface UpdateLocationRequest {
+  city?: string | null;
+  country?: string | null;
+  isFavorite?: boolean | null;
+}
+
+export interface UpdateUserPreferencesRequest {
+  units: 'metric' | 'imperial';
+  refreshIntervalMinutes: number;
+}
+
+export interface ApiErrorResponse {
+  message: string;
+  detail: string | null;
+  traceId: string;
+}

@@ -1,0 +1,38 @@
+@WeatherAssessmentApp_HostAddress = http://localhost:5044
+
+### Get all locations
+GET {{WeatherAssessmentApp_HostAddress}}/api/locations
+Accept: application/json
+
+### Add a location
+POST {{WeatherAssessmentApp_HostAddress}}/api/locations
+Content-Type: application/json
+
+{
+  "city": "Seattle",
+  "country": "US",
+  "isFavorite": true
+}
+
+### Get tracked current weather
+GET {{WeatherAssessmentApp_HostAddress}}/api/weather/current
+Accept: application/json
+
+### Get forecast for location id 1
+GET {{WeatherAssessmentApp_HostAddress}}/api/weather/forecast/1
+Accept: application/json
+
+### Update preferences
+PUT {{WeatherAssessmentApp_HostAddress}}/api/preferences
+Content-Type: application/json
+
+{
+  "units": "metric",
+  "refreshIntervalMinutes": 30
+}
+
+### Sync all tracked locations
+POST {{WeatherAssessmentApp_HostAddress}}/api/sync/refresh-all
+Content-Type: application/json
+
+{}

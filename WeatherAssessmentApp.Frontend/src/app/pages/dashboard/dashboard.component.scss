@@ -1,0 +1,186 @@
+:host {
+  display: block;
+}
+
+.dashboard {
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(20, 54, 61, 0.1);
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 35px rgba(12, 25, 28, 0.08);
+}
+
+.intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: #205b65;
+  margin: 0;
+}
+
+h1 {
+  margin: 0.2rem 0;
+  font-size: clamp(1.5rem, 2.5vw, 2.4rem);
+}
+
+.subtitle {
+  margin: 0;
+  color: #35595f;
+}
+
+.grid.two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 600;
+  color: #234b51;
+}
+
+input,
+select {
+  border-radius: 10px;
+  border: 1px solid #bfd6dc;
+  background: #fbfeff;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+.checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 500;
+}
+
+.btn {
+  border-radius: 10px;
+  border: 1px solid #1d7280;
+  background: #1d7280;
+  color: #ffffff;
+  padding: 0.55rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-strong {
+  min-width: 140px;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: #155f6c;
+}
+
+.btn.danger {
+  background: #a43333;
+  border-color: #a43333;
+}
+
+.btn.small {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.86rem;
+}
+
+.hint {
+  color: #5d7377;
+  margin: 0;
+}
+
+.error {
+  background: #fde9e7;
+  border: 1px solid #e2b0a9;
+  color: #92251c;
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.locations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.location-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(24, 70, 80, 0.12);
+  border-radius: 16px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.location-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.location-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.location-card p {
+  margin: 0;
+  color: #48666b;
+}
+
+.temp {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #113f47;
+}
+
+.location-card footer {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.3rem;
+  color: #154d58;
+}
+
+@media (max-width: 900px) {
+  .grid.two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .intro {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

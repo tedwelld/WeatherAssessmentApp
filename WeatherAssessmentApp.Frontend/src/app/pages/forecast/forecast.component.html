@@ -1,0 +1,28 @@
+<main class="forecast" *ngIf="forecast$ | async as forecast; else loadingOrEmpty">
+  <a class="back-link" routerLink="/">Back to dashboard</a>
+
+  <header>
+    <h1>{{ forecast.city }}, {{ forecast.country }}</h1>
+    <p>5-day forecast details (3-hour intervals)</p>
+  </header>
+
+  <section class="forecast-grid">
+    <article *ngFor="let item of forecast.items" class="forecast-card">
+      <h3>{{ formatDate(item.forecastAtUtc) }}</h3>
+      <p class="temp">{{ item.temperature | number: '1.0-1' }}&deg;{{ getUnitSymbol(forecast.units) }}</p>
+      <p>{{ item.summary }}</p>
+      <p>Feels like {{ item.feelsLike | number: '1.0-1' }}&deg;{{ getUnitSymbol(forecast.units) }}</p>
+      <p>Humidity {{ item.humidity }}%</p>
+      <p>Wind {{ item.windSpeed | number: '1.0-1' }} {{ getWindUnit(forecast.units) }}</p>
+    </article>
+  </section>
+</main>
+
+<ng-template #loadingOrEmpty>
+  <main class="forecast">
+    <a class="back-link" routerLink="/">Back to dashboard</a>
+    <p *ngIf="loading$ | async">Loading forecast...</p>
+    <p class="error" *ngIf="!(loading$ | async) && (error$ | async) as error">{{ error }}</p>
+    <p *ngIf="!(loading$ | async) && !(error$ | async)">No forecast data available for this location.</p>
+  </main>
+</ng-template>

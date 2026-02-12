@@ -1,3 +1,9 @@
 <Solution>
-  <Project Path="WeatherAssessmentApp/WeatherAssessmentApp.csproj" />
+  <Folder Name="/WeatherAssessmentApp.Web/">
+    <Project Path="WeatherAssessmentApp.Web/WeatherAssessmentApp.csproj" />
+  </Folder>
+  <Project Path="WeatherAssessmentApp.Application.Tests/WeatherAssessmentApp.Application.Tests.csproj" />
+  <Project Path="WeatherAssessmentApp.Application/WeatherAssessmentApp.Application.csproj" />
+  <Project Path="WeatherAssessmentApp.Domain/WeatherAssessmentApp.Domain.csproj" />
+  <Project Path="WeatherAssessmentApp.Infrastructure/WeatherAssessmentApp.Infrastructure.csproj" />
 </Solution>

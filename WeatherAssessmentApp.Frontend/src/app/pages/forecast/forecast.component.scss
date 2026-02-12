@@ -1,0 +1,72 @@
+:host {
+  display: block;
+}
+
+.forecast {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.6rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.back-link {
+  width: fit-content;
+  text-decoration: none;
+  color: #18454e;
+  border-bottom: 1px solid #18454e;
+}
+
+header {
+  background: rgba(255, 255, 255, 0.86);
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(20, 60, 65, 0.14);
+}
+
+header h1 {
+  margin: 0;
+}
+
+header p {
+  margin: 0.45rem 0 0;
+  color: #53767b;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.forecast-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  border: 1px solid rgba(24, 70, 80, 0.12);
+  padding: 0.9rem;
+}
+
+.forecast-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #26474d;
+}
+
+.forecast-card p {
+  margin: 0.4rem 0 0;
+  color: #3b5f65;
+}
+
+.temp {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #173b42;
+}
+
+.error {
+  color: #92251c;
+  background: #fde9e7;
+  border: 1px solid #e2b0a9;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}

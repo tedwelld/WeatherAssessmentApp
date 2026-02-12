@@ -1,0 +1,27 @@
+services:
+  weather-api:
+    build:
+      context: .
+      dockerfile: WeatherAssessmentApp.Web/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: sqlite
+      ConnectionStrings__Sqlite: Data Source=/app/data/weatherassessment.db
+      OpenWeatherMap__ApiKey: ${OPENWEATHERMAP_API_KEY:-}
+      OpenWeatherMap__BaseUrl: https://api.openweathermap.org
+      OpenWeatherMap__CacheDurationMinutes: 5
+      BackgroundSync__Enabled: true
+      BackgroundSync__FallbackRefreshIntervalMinutes: 30
+    ports:
+      - "5044:8080"
+    volumes:
+      - ./data:/app/data
+
+  weather-frontend:
+    build:
+      context: ./WeatherAssessmentApp.Frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - weather-api
+    ports:
+      - "4200:80"
