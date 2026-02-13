@@ -28,10 +28,13 @@
       <p>Liquid Weather Command Center</p>
     </div>
     <div class="nav-actions">
-      <button type="button" class="nav-btn" (click)="toggleTheme()">
-        <span *ngIf="mode$ | async as mode">
-          {{ mode === 'normal' ? 'Switch to Color' : 'Switch to Black & White' }}
-        </span>
+      <button
+        type="button"
+        class="nav-btn theme-btn"
+        (click)="toggleTheme()"
+        [attr.aria-label]="(mode$ | async) === 'normal' ? 'Switch to color theme' : 'Switch to black and white theme'"
+        [attr.title]="(mode$ | async) === 'normal' ? 'Switch to color theme' : 'Switch to black and white theme'">
+        <span class="theme-icon" *ngIf="mode$ | async as mode" [ngClass]="mode"></span>
       </button>
       <button type="button" class="nav-btn alert-btn" (click)="toggleNotificationsPanel()" aria-label="Open updates">
         <span class="icon">&#128276;</span>
@@ -59,6 +62,7 @@
   </section>
 
   <router-outlet></router-outlet>
+  <app-world-weather-map></app-world-weather-map>
 
   <section class="toast-stack" *ngIf="toasts$ | async as toasts">
     <article class="toast glass-nav" *ngFor="let toast of toasts" [ngClass]="toast.type">
@@ -67,5 +71,23 @@
     </article>
   </section>
 
-  <footer class="app-footer glass-nav">powered by yourITguy - Tedwell.</footer>
+  <footer class="app-footer glass-nav">
+    <div class="footer-grid">
+      <p><span class="footer-icon">&#128205;</span><span>Location: Harare, Zimbabwe</span></p>
+      <p><span class="footer-icon">&#128197;</span><span>Date: {{ now | date: 'fullDate' }}</span></p>
+      <a href="mailto:tedwell@outlook.com">
+        <span class="footer-icon">&#9993;</span>
+        <span>Email: tedwell@outlook.com</span>
+      </a>
+      <a href="tel:+263789276807">
+        <span class="footer-icon">&#9742;</span>
+        <span>Contact: +263789276807</span>
+      </a>
+      <a href="https://wa.me/263789276807" target="_blank" rel="noopener noreferrer">
+        <span class="footer-icon">WA</span>
+        <span>WhatsApp: +263789276807</span>
+      </a>
+    </div>
+    <p class="footer-note">Weather Scope weather operations dashboard with live sync updates and forecast intelligence.</p>
+  </footer>
 </div>

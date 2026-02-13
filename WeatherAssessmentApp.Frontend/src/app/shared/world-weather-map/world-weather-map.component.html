@@ -1,0 +1,51 @@
+<section class="map-panel glass-panel">
+  <header class="map-header">
+    <div>
+      <h2>World Weather Hover Map</h2>
+      <p>
+        Move your mouse across the map to view current conditions for that point, including
+        temperature, humidity, wind, and mapped place details.
+      </p>
+    </div>
+  </header>
+
+  <div class="map-layout">
+    <div class="map-shell">
+      <div
+        #mapHost
+        class="world-map"
+        role="application"
+        aria-label="Interactive world map that shows current weather on hover"></div>
+    </div>
+
+    <aside class="hover-panel">
+      <h3>Current Hovered Point</h3>
+      <p class="coords" *ngIf="hoverWeather.latitude !== null && hoverWeather.longitude !== null">
+        {{ hoverWeather.latitude | number: '1.2-2' }}&deg;, {{ hoverWeather.longitude | number: '1.2-2' }}&deg;
+      </p>
+      <p class="coords" *ngIf="hoverWeather.latitude === null">No point selected yet.</p>
+
+      <p class="status" [ngClass]="hoverWeather.status" *ngIf="hoverWeather.message">
+        {{ hoverWeather.message }}
+      </p>
+
+      <ng-container *ngIf="hoverWeather.status === 'ready'">
+        <p class="location">{{ hoverWeather.locationLabel }}</p>
+        <div class="metric-grid">
+          <p><strong>Condition</strong><span>{{ hoverWeather.condition }}</span></p>
+          <p><strong>Temperature</strong><span>{{ hoverWeather.temperature | number: '1.1-1' }}&deg;C</span></p>
+          <p><strong>Humidity</strong><span>{{ hoverWeather.humidity | number: '1.0-0' }}%</span></p>
+          <p><strong>Wind</strong><span>{{ hoverWeather.windSpeed | number: '1.1-1' }} m/s</span></p>
+          <p><strong>Observed</strong><span>{{ hoverWeather.observedAtUtc | date: 'medium' }}</span></p>
+        </div>
+      </ng-container>
+    </aside>
+  </div>
+
+  <section class="footnotes">
+    <h3>Overall Weather Footnotes</h3>
+    <ul>
+      <li *ngFor="let note of overallFootnotes$ | async">{{ note }}</li>
+    </ul>
+  </section>
+</section>
