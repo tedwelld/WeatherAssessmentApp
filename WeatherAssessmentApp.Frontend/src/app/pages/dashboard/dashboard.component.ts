@@ -171,7 +171,7 @@ export class DashboardComponent implements OnInit {
         countryForecastLoading,
         expandedCountries,
         selectedCountryMetric,
-        syncHistory,
+        syncHistory: this.getRecentSyncHistory(syncHistory),
         exportingPdf,
         preferences,
         loading,
@@ -807,5 +807,15 @@ export class DashboardComponent implements OnInit {
       default:
         return value.toFixed(1);
     }
+  }
+
+  private getRecentSyncHistory(syncHistory: SyncOperationDto[]): SyncOperationDto[] {
+    // Keep the UI focused on the latest operations only.
+    return [...syncHistory]
+      .sort(
+        (left, right) =>
+          new Date(right.occurredAtUtc).getTime() - new Date(left.occurredAtUtc).getTime()
+      )
+      .slice(0, 5);
   }
 }

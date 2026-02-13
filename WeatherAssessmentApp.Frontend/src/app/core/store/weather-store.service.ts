@@ -153,6 +153,7 @@ export class WeatherStoreService {
   }
 
   private refreshState(): Observable<void> {
+    // Reload all dashboard slices after any mutating command to keep UI consistent.
     return forkJoin({
       locations: this.api.getLocations(),
       weather: this.api.getTrackedCurrentWeather(),
@@ -184,6 +185,7 @@ export class WeatherStoreService {
   private setSyncHistory(syncHistory: SyncOperationDto[], announceUpdates: boolean): void {
     this.syncHistorySubject.next(syncHistory);
 
+    // Track newly seen sync operations so we only notify once per operation ID.
     const newItems = syncHistory
       .filter((item) => !this.knownSyncOperationIds.has(item.id))
       .sort((a, b) => a.id - b.id);

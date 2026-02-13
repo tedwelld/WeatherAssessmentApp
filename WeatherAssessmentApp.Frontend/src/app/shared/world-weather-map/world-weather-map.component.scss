@@ -54,6 +54,13 @@
   font-size: 1rem;
 }
 
+.hover-panel hr {
+  width: 100%;
+  margin: 0.2rem 0;
+  border: 0;
+  border-top: 1px solid rgba(179, 218, 241, 0.72);
+}
+
 .coords {
   margin: 0;
   font-size: 0.9rem;
@@ -76,6 +83,11 @@
 .status.error {
   background: rgba(191, 61, 54, 0.14);
   color: #8f2e28;
+}
+
+.status.missing {
+  background: rgba(189, 138, 38, 0.14);
+  color: #8c6120;
 }
 
 .location {
@@ -113,6 +125,7 @@
 .footnotes {
   border-top: 1px solid rgba(179, 218, 241, 0.72);
   padding-top: 0.75rem;
+  text-align: center;
 }
 
 .footnotes h3 {
@@ -123,7 +136,8 @@
 
 .footnotes ul {
   margin: 0.5rem 0 0;
-  padding-left: 1rem;
+  padding: 0;
+  list-style: none;
   display: grid;
   gap: 0.35rem;
 }

@@ -19,6 +19,30 @@
     </div>
 
     <aside class="hover-panel">
+      <h3>Selected Tracked City</h3>
+      <p class="status missing" *ngIf="selectedCityWeather.message">
+        {{ selectedCityWeather.message }}
+      </p>
+
+      <ng-container *ngIf="selectedCityWeather.status === 'ready'">
+        <p class="location">{{ selectedCityWeather.cityLabel }}</p>
+        <div class="metric-grid">
+          <p><strong>Condition</strong><span>{{ selectedCityWeather.condition }}</span></p>
+          <p>
+            <strong>Temperature</strong>
+            <span>{{ selectedCityWeather.temperature | number: '1.1-1' }}&deg;{{ getSelectedTempUnit(selectedCityWeather.units) }}</span>
+          </p>
+          <p><strong>Humidity</strong><span>{{ selectedCityWeather.humidity | number: '1.0-0' }}%</span></p>
+          <p>
+            <strong>Wind</strong>
+            <span>{{ selectedCityWeather.windSpeed | number: '1.1-1' }} {{ getSelectedWindUnit(selectedCityWeather.units) }}</span>
+          </p>
+          <p><strong>Observed</strong><span>{{ selectedCityWeather.observedAtUtc | date: 'medium' }}</span></p>
+        </div>
+      </ng-container>
+
+      <hr />
+
       <h3>Current Hovered Point</h3>
       <p class="coords" *ngIf="hoverWeather.latitude !== null && hoverWeather.longitude !== null">
         {{ hoverWeather.latitude | number: '1.2-2' }}&deg;, {{ hoverWeather.longitude | number: '1.2-2' }}&deg;

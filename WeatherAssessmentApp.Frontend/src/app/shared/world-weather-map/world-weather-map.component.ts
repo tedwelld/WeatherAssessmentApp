@@ -49,6 +49,18 @@ interface HoverLookupResult {
   observedAtUtc: string;
 }
 
+interface SelectedTrackedCityViewModel {
+  status: 'idle' | 'ready' | 'missing';
+  cityLabel: string;
+  condition: string;
+  temperature: number | null;
+  humidity: number | null;
+  windSpeed: number | null;
+  observedAtUtc: string | null;
+  units: 'Metric' | 'Imperial';
+  message: string;
+}
+
 @Component({
   selector: 'app-world-weather-map',
   standalone: true,
@@ -66,6 +78,10 @@ export class WorldWeatherMapComponent implements AfterViewInit, OnDestroy {
 
   private map?: L.Map;
   private hoverMarker?: L.CircleMarker;
+  private trackedCityLayer?: L.LayerGroup;
+  private selectedLocationId: number | null = null;
+  private locationById: Record<number, LocationDto> = {};
+  private weatherByLocationId: Record<number, CurrentWeatherDto> = {};
 
   hoverWeather: HoverWeatherViewModel = {
     status: 'idle',
@@ -78,6 +94,18 @@ export class WorldWeatherMapComponent implements AfterViewInit, OnDestroy {
     windSpeed: null,
     observedAtUtc: null,
     message: 'Hover over the map to inspect live current conditions.'
+  };
+
+  selectedCityWeather: SelectedTrackedCityViewModel = {
+    status: 'idle',
+    cityLabel: '',
+    condition: '',
+    temperature: null,
+    humidity: null,
+    windSpeed: null,
+    observedAtUtc: null,
+    units: 'Metric',
+    message: 'Click a tracked city marker to view city-specific weather.'
   };
 
   readonly overallFootnotes$ = combineLatest([this.store.locations$, this.store.currentWeather$]).pipe(
@@ -98,6 +126,7 @@ export class WorldWeatherMapComponent implements AfterViewInit, OnDestroy {
 
     this.initializeMap();
     this.bindHoverLookup();
+    this.bindTrackedCities();
   }
 
   ngOnDestroy(): void {
@@ -141,6 +170,7 @@ export class WorldWeatherMapComponent implements AfterViewInit, OnDestroy {
   private bindHoverLookup(): void {
     this.hoverCoordinates
       .pipe(
+        // Normalize and debounce hover coordinates to avoid excessive API calls while moving mouse.
         map((coordinates) => ({
           latitude: Number(coordinates.latitude.toFixed(2)),
           longitude: Number(coordinates.longitude.toFixed(2))
@@ -205,6 +235,135 @@ export class WorldWeatherMapComponent implements AfterViewInit, OnDestroy {
           message: ''
         };
       });
+  }
+
+  private bindTrackedCities(): void {
+    combineLatest([this.store.locations$, this.store.currentWeather$])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(([locations, weatherItems]) => {
+        this.locationById = locations.reduce<Record<number, LocationDto>>((acc, location) => {
+          acc[location.id] = location;
+          return acc;
+        }, {});
+
+        this.weatherByLocationId = weatherItems
+          .filter((item) => item.locationId !== null)
+          .reduce<Record<number, CurrentWeatherDto>>((acc, item) => {
+            acc[item.locationId as number] = item;
+            return acc;
+          }, {});
+
+        this.renderTrackedCityMarkers(locations);
+
+        if (locations.length === 0) {
+          this.selectedLocationId = null;
+          this.selectedCityWeather = {
+            status: 'idle',
+            cityLabel: '',
+            condition: '',
+            temperature: null,
+            humidity: null,
+            windSpeed: null,
+            observedAtUtc: null,
+            units: 'Metric',
+            message: 'No tracked cities available yet. Add a city to your watchlist first.'
+          };
+          return;
+        }
+
+        const selectedExists = this.selectedLocationId !== null && !!this.locationById[this.selectedLocationId];
+        if (!selectedExists) {
+          const preferred = locations.find((item) => item.isFavorite) ?? locations[0];
+          this.selectedLocationId = preferred.id;
+        }
+
+        if (this.selectedLocationId !== null) {
+          this.updateSelectedCityState(this.selectedLocationId);
+        }
+      });
+  }
+
+  private renderTrackedCityMarkers(locations: LocationDto[]): void {
+    if (!this.map) {
+      return;
+    }
+
+    // Rebuild marker layer whenever tracked locations change.
+    if (this.trackedCityLayer) {
+      this.trackedCityLayer.removeFrom(this.map);
+    }
+
+    this.trackedCityLayer = L.layerGroup();
+
+    locations.forEach((location) => {
+      if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+        return;
+      }
+
+      const marker = L.circleMarker([location.latitude, location.longitude], {
+        radius: location.isFavorite ? 8 : 7,
+        color: '#0f4a6b',
+        weight: 2,
+        fillColor: location.isFavorite ? '#f49f45' : '#4db2df',
+        fillOpacity: 0.92
+      });
+
+      marker.bindTooltip(`${location.city}, ${location.country}`, { direction: 'top', offset: [0, -4] });
+      marker.on('click', () => {
+        this.selectedLocationId = location.id;
+        this.updateSelectedCityState(location.id);
+      });
+
+      marker.addTo(this.trackedCityLayer as L.LayerGroup);
+    });
+
+    this.trackedCityLayer.addTo(this.map);
+  }
+
+  private updateSelectedCityState(locationId: number): void {
+    const location = this.locationById[locationId];
+    if (!location) {
+      this.selectedCityWeather = {
+        status: 'missing',
+        cityLabel: '',
+        condition: '',
+        temperature: null,
+        humidity: null,
+        windSpeed: null,
+        observedAtUtc: null,
+        units: 'Metric',
+        message: 'Selected city is no longer available.'
+      };
+      return;
+    }
+
+    const weather = this.weatherByLocationId[locationId];
+    if (!weather) {
+      this.selectedCityWeather = {
+        status: 'missing',
+        cityLabel: `${location.city}, ${location.country}`,
+        condition: '',
+        temperature: null,
+        humidity: null,
+        windSpeed: null,
+        observedAtUtc: null,
+        units: location.units,
+        message: 'Weather data is not synced for this city yet. Use refresh to load it.'
+      };
+      return;
+    }
+
+    this.selectedCityWeather = {
+      status: 'ready',
+      cityLabel: `${weather.city}, ${weather.country}`,
+      condition: weather.summary,
+      temperature: weather.temperature,
+      humidity: weather.humidity,
+      windSpeed: weather.windSpeed,
+      observedAtUtc: weather.observedAtUtc,
+      units: weather.units,
+      message: ''
+    };
   }
 
   private fetchHoverWeather(latitude: number, longitude: number): Observable<HoverLookupResult> {
@@ -391,5 +550,13 @@ export class WorldWeatherMapComponent implements AfterViewInit, OnDestroy {
       default:
         return 'Variable weather';
     }
+  }
+
+  getSelectedTempUnit(units: 'Metric' | 'Imperial'): string {
+    return units === 'Imperial' ? 'F' : 'C';
+  }
+
+  getSelectedWindUnit(units: 'Metric' | 'Imperial'): string {
+    return units === 'Imperial' ? 'mph' : 'm/s';
   }
 }

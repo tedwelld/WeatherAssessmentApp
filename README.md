@@ -1,148 +1,323 @@
-# Weather Data Integration Platform
+# Weather Assessment App
 
-Production-ready full-stack weather platform with Clean Architecture backend and Angular frontend.
+Full-stack weather tracking and forecasting platform with a Clean Architecture backend and Angular frontend.
 
-## Tech Stack
+## 1. System Overview
 
-- Backend: ASP.NET Core Web API (.NET 8), EF Core, SQLite/SQL Server, OpenWeatherMap integration
-- Architecture: `Domain`, `Application`, `Infrastructure`, `Web`
-- Frontend: Angular 21 (standalone), responsive UI, RxJS-based state management
-- Testing: xUnit + Moq + FluentAssertions
-- Ops: Docker + docker-compose, background sync, in-memory API caching, API rate limiting
+The system allows users to:
+- Add and remove tracked cities.
+- View current weather for tracked cities.
+- View 5-day forecast data for a selected city.
+- Trigger manual weather refresh for one city or all cities.
+- View recent sync history.
+- Manage user preferences (units and refresh interval).
+- Visualize country forecast trends (cards, clustered bars, line charts).
+- Export forecast reports to PDF.
+- Use an interactive world map for hover weather inspection.
 
-## Solution Structure
+Backend and frontend are decoupled and communicate via REST APIs.
 
-```text
-WeatherAssessmentApp.Domain
-WeatherAssessmentApp.Application
-WeatherAssessmentApp.Infrastructure
-WeatherAssessmentApp.Web
-WeatherAssessmentApp.Application.Tests
-WeatherAssessmentApp.Frontend
-```
-
-## Features Implemented
-
-- Fetch current weather by city
-- Fetch 5-day forecast by city and by tracked location
-- Robust external API error handling (invalid city, rate-limit, network, timeouts)
-- Persistence model:
-  - `Locations`
-  - `WeatherSnapshots`
-  - `UserPreferences`
-- CRUD for tracked locations
-- Current weather dashboard for tracked cities
-- Forecast details per city
-- Manual sync per location + sync all
-- Background scheduled sync based on user preferences
-- Conflict handling:
-  - optimistic concurrency token on locations (`RowVersion`)
-  - fingerprint-based snapshot writes only when API weather actually changes
-- Clean DI setup
-- Global exception handling middleware
-- EF Core migration included
-- Backend unit tests
-- Frontend responsive UI with centralized store
-- Bonus:
-  - Docker support
-  - Caching strategy
-  - Rate limiting middleware
-  - Mobile-friendly UI
-
-## Configuration
-
-Set `OpenWeatherMap:ApiKey` in `WeatherAssessmentApp.Web/appsettings.json` or environment variable:
-
-- `OpenWeatherMap__ApiKey=YOUR_KEY`
-
-Database provider can be switched with:
-
-- `Database__Provider=sqlite` (default)
-- `Database__Provider=sqlserver`
-
-## Run Locally
+## 2. Tech Stack
 
 ### Backend
-
-```bash
-cd WeatherAssessmentApp
-dotnet build WeatherAssessmentApp.slnx
-dotnet run --project WeatherAssessmentApp.Web
-```
-
-API base URL (default launch profile): `http://localhost:5044`
-
-Swagger: `http://localhost:5044/swagger`
+- .NET 8
+- ASP.NET Core Web API
+- Entity Framework Core 8
+- SQLite / SQL Server
+- Swashbuckle (Swagger/OpenAPI)
+- Built-in Rate Limiter middleware
+- Hosted background service for periodic sync
 
 ### Frontend
+- Angular 21 (standalone components)
+- RxJS
+- SCSS
+- Leaflet (world map)
+- jsPDF + autoTable (PDF export)
 
-```bash
-cd WeatherAssessmentApp/WeatherAssessmentApp.Frontend
-npm install
-npm start
-```
+### Testing
+- xUnit
+- Moq
+- FluentAssertions
 
-Frontend URL: `http://localhost:4200`
+### DevOps
+- Docker + docker-compose
 
-## Database Migrations
+## 3. Architecture
 
-Initial migration is committed under:
+The backend follows Clean Architecture with clear boundaries:
 
-- `WeatherAssessmentApp.Infrastructure/Persistence/Migrations`
+- `WeatherAssessmentApp.Domain`
+  - Core entities and enums.
+  - No infrastructure dependencies.
 
-To create a new migration:
+- `WeatherAssessmentApp.Application`
+  - Business use cases, DTOs, service contracts, validation/application exceptions.
+  - Depends on `Domain`.
 
-```bash
-cd WeatherAssessmentApp
-dotnet ef migrations add <Name> \
-  --project WeatherAssessmentApp.Infrastructure \
-  --startup-project WeatherAssessmentApp.Web \
-  --context WeatherDbContext \
-  --output-dir Persistence/Migrations
-```
+- `WeatherAssessmentApp.Infrastructure`
+  - EF Core DbContext, repositories, external API client (OpenWeatherMap), background sync.
+  - Depends on `Application` and `Domain`.
 
-## Run Tests
+- `WeatherAssessmentApp.Web`
+  - API controllers, middleware, composition root (`Program.cs`), Swagger, CORS, rate limiting.
+  - Depends on `Application` and `Infrastructure`.
 
-```bash
-cd WeatherAssessmentApp
-dotnet test WeatherAssessmentApp.slnx
-```
+- `WeatherAssessmentApp.Frontend`
+  - Angular SPA with centralized weather state store and feature pages.
 
-## Docker
+## 4. Core Data Model
 
-From the repository root:
+Main persisted entities:
+- `Location`
+  - City, country, coordinates, favorite flag, sync metadata, concurrency token.
+- `WeatherSnapshot`
+  - Observed weather values and raw source payload.
+- `UserPreferences`
+  - Units and refresh interval.
+- `SyncOperation`
+  - Refresh history for operational visibility.
 
-```bash
-cd WeatherAssessmentApp
-set OPENWEATHERMAP_API_KEY=YOUR_KEY
-docker compose up --build
-```
+## 5. API Surface (High Level)
 
-- API: `http://localhost:5044`
-- Frontend: `http://localhost:4200`
-
-## API Endpoints
-
+### Locations
 - `GET /api/locations`
+- `GET /api/locations/{id}`
 - `POST /api/locations`
 - `PUT /api/locations/{id}`
 - `DELETE /api/locations/{id}`
 - `POST /api/locations/{id}/refresh`
+
+### Weather
 - `GET /api/weather/current`
 - `GET /api/weather/current/{locationId}`
 - `GET /api/weather/forecast/{locationId}`
-- `GET /api/weather/by-city/current?city=...&country=...`
-- `GET /api/weather/by-city/forecast?city=...&country=...`
+- `GET /api/weather/timeline/{locationId}`
+- `GET /api/weather/next-five-days/{locationId}`
+- `GET /api/weather/by-city/current?city=...&country=...&units=metric|imperial`
+- `GET /api/weather/by-city/forecast?city=...&country=...&units=metric|imperial`
+
+### Preferences
 - `GET /api/preferences`
 - `PUT /api/preferences`
+
+### Sync
 - `POST /api/sync/refresh-all`
+- `GET /api/sync/history?take=20`
 
-## Demo Walkthrough
+Swagger UI is available by default when the backend runs.
 
-1. Start backend and frontend.
-2. Open `http://localhost:4200`.
-3. Add a city (for example: `Seattle`, `US`).
-4. Observe current weather, sync timestamp, and favorite toggle.
-5. Open the city Forecast page.
-6. Change units/refresh interval and save preferences.
-7. Trigger manual refresh (`Refresh` / `Refresh All`) and verify snapshot updates.
+## 6. Project Structure
+
+```text
+WeatherAssessmentApp.Domain/
+WeatherAssessmentApp.Application/
+WeatherAssessmentApp.Infrastructure/
+WeatherAssessmentApp.Web/
+WeatherAssessmentApp.Application.Tests/
+WeatherAssessmentApp.Frontend/
+docker-compose.yml
+```
+
+## 7. Prerequisites
+
+- .NET SDK 8.0+
+- Node.js 20+ (or compatible with Angular 21)
+- npm 10+
+- Optional:
+  - SQL Server LocalDB (if using sqlserver provider)
+  - Docker Desktop
+
+## 8. Configuration
+
+Backend settings are in:
+- `WeatherAssessmentApp.Web/appsettings.json`
+- `WeatherAssessmentApp.Web/appsettings.Development.json`
+
+Key settings:
+- `Database:Provider` = `sqlite` or `sqlserver`
+- `ConnectionStrings:Sqlite`
+- `ConnectionStrings:SqlServer`
+- `OpenWeatherMap:ApiKey`
+- `OpenWeatherMap:BaseUrl`
+- `OpenWeatherMap:CacheDurationMinutes`
+- `BackgroundSync:Enabled`
+- `BackgroundSync:FallbackRefreshIntervalMinutes`
+
+Recommended local environment variable for API key:
+
+```powershell
+$env:OpenWeatherMap__ApiKey="YOUR_OPENWEATHERMAP_KEY"
+```
+
+Note:
+- Avoid committing real API keys to source control.
+
+## 9. How To Start (Local)
+
+### Backend
+
+```powershell
+dotnet restore WeatherAssessmentApp.slnx
+dotnet build WeatherAssessmentApp.slnx
+dotnet run --project WeatherAssessmentApp.Web
+```
+
+Default URLs:
+- API: `http://localhost:5044`
+- Swagger: `http://localhost:5044/swagger`
+
+At startup, backend applies EF migrations and seeds demo locations.
+
+### Frontend
+
+```powershell
+cd WeatherAssessmentApp.Frontend
+npm install
+npm start
+```
+
+Default URL:
+- SPA: `http://localhost:4200`
+
+The frontend currently points to backend base URL:
+- `http://localhost:5044/api`
+defined in:
+- `WeatherAssessmentApp.Frontend/src/app/core/services/weather-api.service.ts`
+
+## 10. Build
+
+### Backend
+
+```powershell
+dotnet build WeatherAssessmentApp.slnx -c Release
+```
+
+### Frontend
+
+```powershell
+cd WeatherAssessmentApp.Frontend
+npm run build
+```
+
+Build output:
+- `WeatherAssessmentApp.Frontend/dist/WeatherAssessmentApp.Frontend`
+
+## 11. Database and Migrations
+
+Migrations live in:
+- `WeatherAssessmentApp.Infrastructure/Persistence/Migrations`
+
+Create a migration:
+
+```powershell
+dotnet ef migrations add <MigrationName> `
+  --project WeatherAssessmentApp.Infrastructure `
+  --startup-project WeatherAssessmentApp.Web `
+  --context WeatherDbContext `
+  --output-dir Persistence/Migrations
+```
+
+Apply migration manually:
+
+```powershell
+dotnet ef database update `
+  --project WeatherAssessmentApp.Infrastructure `
+  --startup-project WeatherAssessmentApp.Web `
+  --context WeatherDbContext
+```
+
+Note:
+- Current startup already calls `Database.MigrateAsync()` in `Program.cs`.
+
+## 12. Testing
+
+Run backend application tests:
+
+```powershell
+dotnet test WeatherAssessmentApp.slnx
+```
+
+Frontend test command:
+
+```powershell
+cd WeatherAssessmentApp.Frontend
+npm test
+```
+
+## 13. Docker
+
+From repository root:
+
+```powershell
+$env:OPENWEATHERMAP_API_KEY="YOUR_OPENWEATHERMAP_KEY"
+docker compose up --build
+```
+
+Services:
+- API: `http://localhost:5044`
+- Frontend: `http://localhost:4200`
+
+## 14. Methodology Used
+
+The implementation follows a practical layered methodology:
+
+1. Domain-first modeling
+   - Entities and invariants modeled in `Domain`.
+2. Use-case driven application services
+   - Orchestration in `Application` via interfaces and DTO contracts.
+3. Infrastructure adapters
+   - EF repositories, external API clients, background jobs in `Infrastructure`.
+4. Thin delivery layer
+   - Controllers in `Web` expose REST endpoints and rely on service abstractions.
+5. Reactive frontend composition
+   - Angular services + RxJS store patterns for state and UI synchronization.
+6. Incremental validation
+   - Migrations, unit tests, and run/build checks used during changes.
+
+## 15. Dependency Summary
+
+### Backend NuGet (key packages)
+- `Microsoft.EntityFrameworkCore` 8.x
+- `Microsoft.EntityFrameworkCore.Sqlite` 8.x
+- `Microsoft.EntityFrameworkCore.SqlServer` 8.x
+- `Swashbuckle.AspNetCore` 6.x
+
+### Frontend npm (key packages)
+- `@angular/*` 21.x
+- `rxjs` 7.x
+- `leaflet` 1.9.x
+- `jspdf` 4.x
+- `jspdf-autotable` 5.x
+
+## 16. Operational Notes
+
+- CORS is currently configured for `http://localhost:4200` in `Program.cs`.
+- Rate limiting is enabled globally (fixed window policy).
+- Background sync interval is driven by user preferences, with fallback value from configuration.
+- Swagger is always enabled in current startup configuration.
+
+## 17. Troubleshooting
+
+### Frontend cannot call backend
+- Confirm backend is running on `http://localhost:5044`.
+- Confirm browser console for CORS/network errors.
+- Confirm `apiBaseUrl` in frontend service matches backend URL.
+
+### No weather data returned
+- Validate OpenWeatherMap API key.
+- Check backend logs for external API errors or rate limits.
+- Try manual sync endpoint from Swagger.
+
+### Migration or database issues
+- Confirm selected provider (`sqlite` or `sqlserver`) and matching connection string.
+- Re-run migrations using `dotnet ef database update`.
+
+## 18. Recommended Next Improvements
+
+- Move frontend API base URL to environment-based Angular configuration.
+- Add integration tests for API controllers.
+- Add frontend E2E tests.
+- Add CI pipeline (build/test/lint/migration validation).
+- Strengthen secrets management (user-secrets, vault, or CI secret store).
+
