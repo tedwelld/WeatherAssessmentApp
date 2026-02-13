@@ -205,6 +205,114 @@ Build output:
 
 ## 11. Database and Migrations
 
+### 11.1 Database Design (Structure)
+
+The application uses Entity Framework Core with provider switching:
+- `Database:Provider=sqlite` for lightweight/local usage.
+- `Database:Provider=sqlserver` for SQL Server environments.
+
+Schema is created from domain entities via `WeatherDbContext`:
+- `WeatherAssessmentApp.Infrastructure/Persistence/WeatherDbContext.cs`
+
+#### ER-style Relationship View
+
+```text
+UserPreferences (1) ---- (*) Locations (1) ---- (*) WeatherSnapshots
+                                  |
+                                  +---- (0..*) SyncOperations (LocationId nullable)
+```
+
+#### Table Structure
+
+1. `UserPreferences`
+- `Id` (PK)
+- `Units` (string enum: Metric/Imperial)
+- `RefreshIntervalMinutes`
+- `CreatedAtUtc`
+- `UpdatedAtUtc`
+
+2. `Locations`
+- `Id` (PK)
+- `City` (required, max 128)
+- `Country` (required, max 64)
+- `Latitude`, `Longitude`
+- `IsFavorite`
+- `LastSyncedAtUtc` (nullable)
+- `LastWeatherFingerprint` (nullable, max 128)
+- `UserPreferencesId` (FK -> `UserPreferences.Id`, delete behavior: `Restrict`)
+- `RowVersion` (concurrency token / optimistic concurrency)
+
+3. `WeatherSnapshots`
+- `Id` (PK)
+- `LocationId` (FK -> `Locations.Id`, delete behavior: `Cascade`)
+- `ObservedAtUtc`
+- `Temperature`, `FeelsLike` (decimal(8,2))
+- `Humidity`, `Pressure`
+- `WindSpeed` (decimal(8,2))
+- `Summary` (required, max 256)
+- `IconCode` (required, max 10)
+- `SourcePayload` (required, raw upstream payload)
+
+4. `SyncOperations`
+- `Id` (PK)
+- `Type` (string enum: `LocationRefresh` | `RefreshAll`)
+- `LocationId` (nullable FK -> `Locations.Id`, delete behavior: `SetNull`)
+- `LocationDisplayName` (required, max 192)
+- `RefreshedLocations`
+- `SnapshotsCreated`
+- `OccurredAtUtc`
+
+#### Indexes and Constraints
+
+- Unique index on `Locations(City, Country)` to prevent duplicate tracked locations.
+- Index on `WeatherSnapshots(LocationId, ObservedAtUtc)` for timeline/forecast reads.
+- Index on `SyncOperations(OccurredAtUtc)` for recent activity queries.
+- Index on `SyncOperations(LocationId)`.
+- Concurrency via `Locations.RowVersion`.
+
+### 11.2 Database Flow (How Data Moves)
+
+1. Startup flow
+- `Program.cs` runs `Database.MigrateAsync()` then `SeedDemoLocationsAsync()`.
+- This ensures schema is current and default records exist.
+
+2. Add city flow
+- API receives `POST /api/locations`.
+- `LocationService` checks duplicates (`City+Country`), resolves current weather from provider, creates `Location`, then inserts first `WeatherSnapshot`.
+- Transactional save happens via `UnitOfWork`.
+
+3. Refresh flow (single/all)
+- Triggered by `POST /api/locations/{id}/refresh` or `POST /api/sync/refresh-all`.
+- `WeatherSyncService` fetches current provider data.
+- Fingerprint is compared with `LastWeatherFingerprint`.
+- New `WeatherSnapshot` is inserted only when weather payload changed.
+- A `SyncOperation` audit record is always written.
+
+4. Read flow for dashboard/forecast
+- Current tracked weather and forecasts are read from snapshots + provider-backed logic in `WeatherService`.
+- Recent sync history is queried from `SyncOperations` ordered by `OccurredAtUtc DESC`.
+
+5. Background sync flow
+- `WeatherSyncBackgroundService` runs in loop.
+- Reads preference interval from `UserPreferences`.
+- Executes refresh-all and writes snapshots/sync history.
+
+### 11.3 Database Layer Organization
+
+- DbContext and mappings:
+  - `WeatherAssessmentApp.Infrastructure/Persistence/WeatherDbContext.cs`
+- Repositories:
+  - `.../Repositories/LocationRepository.cs`
+  - `.../Repositories/WeatherSnapshotRepository.cs`
+  - `.../Repositories/UserPreferencesRepository.cs`
+  - `.../Repositories/SyncOperationRepository.cs`
+- Unit of work and exception translation:
+  - `WeatherAssessmentApp.Infrastructure/Persistence/UnitOfWork.cs`
+- Seed logic:
+  - `WeatherAssessmentApp.Infrastructure/Persistence/WeatherDbSeeder.cs`
+- Migrations:
+  - `WeatherAssessmentApp.Infrastructure/Persistence/Migrations/*`
+
 Migrations live in:
 - `WeatherAssessmentApp.Infrastructure/Persistence/Migrations`
 
@@ -320,4 +428,3 @@ The implementation follows a practical layered methodology:
 - Add frontend E2E tests.
 - Add CI pipeline (build/test/lint/migration validation).
 - Strengthen secrets management (user-secrets, vault, or CI secret store).
-
