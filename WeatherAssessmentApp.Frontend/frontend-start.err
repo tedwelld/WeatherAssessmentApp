@@ -1,0 +1,28 @@
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: NgForOf is not used within the template of App[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.ts:10:55:
+[37m      10 │ ...terOutlet, RouterLink, AsyncPipe, NgIf, [32mNgFor[37m, NgClass, DatePipe],
+         ╵                                            [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: NgClass is not used within the template of App[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.ts:10:62:
+[37m      10 │ ...terOutlet, RouterLink, AsyncPipe, NgIf, NgFor, [32mNgClass[37m, DatePipe],
+         ╵                                                   [32m~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of App[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.ts:10:71:
+[37m      10 │ ...terOutlet, RouterLink, AsyncPipe, NgIf, NgFor, NgClass, [32mDatePipe[37m],
+         ╵                                                            [32m~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: WorldWeatherMapComponent is not used within the template of App[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.ts:11:81:
+[37m      11 │ ...ncPipe, NgIf, NgFor, NgClass, DatePipe, [32mWorldWeatherMapComponent[37m],
+         ╵                                            [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

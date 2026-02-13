@@ -19,21 +19,18 @@ public static class DependencyInjection
         services.Configure<OpenWeatherMapOptions>(configuration.GetSection(OpenWeatherMapOptions.SectionName));
         services.Configure<BackgroundSyncOptions>(configuration.GetSection(BackgroundSyncOptions.SectionName));
 
-        var provider = configuration["Database:Provider"]?.Trim().ToLowerInvariant() ?? "sqlite";
+        var provider = configuration["Database:Provider"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(provider) && !provider.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Only SQL Server is supported. Set Database:Provider=sqlserver.");
+        }
+
+        var sqlServerConnection = configuration.GetConnectionString("SqlServer")
+            ?? throw new InvalidOperationException("ConnectionStrings:SqlServer is required.");
 
         services.AddDbContext<WeatherDbContext>(options =>
         {
-            if (provider == "sqlserver")
-            {
-                var sqlServerConnection = configuration.GetConnectionString("SqlServer")
-                    ?? throw new InvalidOperationException("ConnectionStrings:SqlServer is required when Database:Provider=sqlserver.");
-                options.UseSqlServer(sqlServerConnection);
-                return;
-            }
-
-            var sqliteConnection = configuration.GetConnectionString("Sqlite")
-                ?? "Data Source=weatherassessment.db";
-            options.UseSqlite(sqliteConnection);
+            options.UseSqlServer(sqlServerConnection);
         });
 
         services.AddMemoryCache();

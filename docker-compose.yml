@@ -1,12 +1,24 @@
 services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_strong_password123!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
   weather-api:
     build:
       context: .
       dockerfile: WeatherAssessmentApp.Web/Dockerfile
+    depends_on:
+      - sqlserver
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      Database__Provider: sqlite
-      ConnectionStrings__Sqlite: Data Source=/app/data/weatherassessment.db
+      Database__Provider: sqlserver
+      ConnectionStrings__SqlServer: Server=sqlserver,1433;Database=WeatherAssessmentDb;User Id=sa;Password=Your_strong_password123!;TrustServerCertificate=true;Encrypt=false;MultipleActiveResultSets=true
       OpenWeatherMap__ApiKey: ${OPENWEATHERMAP_API_KEY:-}
       OpenWeatherMap__BaseUrl: https://api.openweathermap.org
       OpenWeatherMap__CacheDurationMinutes: 5
@@ -14,8 +26,6 @@ services:
       BackgroundSync__FallbackRefreshIntervalMinutes: 30
     ports:
       - "5044:8080"
-    volumes:
-      - ./data:/app/data
 
   weather-frontend:
     build:
@@ -25,3 +35,6 @@ services:
       - weather-api
     ports:
       - "4200:80"
+
+volumes:
+  sqlserver-data:

@@ -23,7 +23,7 @@ Backend and frontend are decoupled and communicate via REST APIs.
 - .NET 8
 - ASP.NET Core Web API
 - Entity Framework Core 8
-- SQLite / SQL Server
+- SQL Server
 - Swashbuckle (Swagger/OpenAPI)
 - Built-in Rate Limiter middleware
 - Hosted background service for periodic sync
@@ -121,11 +121,13 @@ docker-compose.yml
 
 ## 7. Prerequisites
 
+- Visual Studio Code (required IDE)
+- Git
 - .NET SDK 8.0+
 - Node.js 20+ (or compatible with Angular 21)
 - npm 10+
+- SQL Server (Developer / Express / LocalDB)
 - Optional:
-  - SQL Server LocalDB (if using sqlserver provider)
   - Docker Desktop
 
 ## 8. Configuration
@@ -135,14 +137,18 @@ Backend settings are in:
 - `WeatherAssessmentApp.Web/appsettings.Development.json`
 
 Key settings:
-- `Database:Provider` = `sqlite` or `sqlserver`
-- `ConnectionStrings:Sqlite`
+- `Database:Provider` = `sqlserver` (required)
 - `ConnectionStrings:SqlServer`
 - `OpenWeatherMap:ApiKey`
 - `OpenWeatherMap:BaseUrl`
 - `OpenWeatherMap:CacheDurationMinutes`
 - `BackgroundSync:Enabled`
 - `BackgroundSync:FallbackRefreshIntervalMinutes`
+
+SQL Server only requirement:
+- This system is configured to run on SQL Server only.
+- `Database:Provider` must remain `sqlserver`.
+- Ensure `ConnectionStrings:SqlServer` points to your SQL Server instance.
 
 Recommended local environment variable for API key:
 
@@ -153,31 +159,64 @@ $env:OpenWeatherMap__ApiKey="YOUR_OPENWEATHERMAP_KEY"
 Note:
 - Avoid committing real API keys to source control.
 
-## 9. How To Start (Local)
+## 9. Setup Instructions (GitHub + VS Code + CLI/CMD)
 
-### Backend
+### 9.1 Clone from GitHub
+
+Use CMD or PowerShell:
 
 ```powershell
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd <YOUR_REPOSITORY_FOLDER>
+```
+
+Example:
+
+```powershell
+git clone https://github.com/<org-or-user>/WeatherAssessment.git
+cd WeatherAssessment
+```
+
+### 9.2 Open in Visual Studio Code
+
+From the repository root:
+
+```powershell
+code .
+```
+
+In VS Code:
+- Open the integrated terminal with ``Ctrl+` ``.
+- Use two terminals: one for backend and one for frontend.
+
+### 9.3 Navigate folders and run with CLI/CMD
+
+Backend terminal:
+
+```powershell
+cd WeatherAssessmentApp
 dotnet restore WeatherAssessmentApp.slnx
 dotnet build WeatherAssessmentApp.slnx
 dotnet run --project WeatherAssessmentApp.Web
 ```
 
-Default URLs:
+Frontend terminal:
+
+```powershell
+cd WeatherAssessmentApp\WeatherAssessmentApp.Frontend
+npm install
+npm start
+```
+
+### 9.4 Runtime URLs and startup behavior
+
+Backend URLs:
 - API: `http://localhost:5044`
 - Swagger: `http://localhost:5044/swagger`
 
 At startup, backend applies EF migrations and seeds demo locations.
 
-### Frontend
-
-```powershell
-cd WeatherAssessmentApp.Frontend
-npm install
-npm start
-```
-
-Default URL:
+Frontend URL:
 - SPA: `http://localhost:4200`
 
 The frontend currently points to backend base URL:
@@ -207,9 +246,9 @@ Build output:
 
 ### 11.1 Database Design (Structure)
 
-The application uses Entity Framework Core with provider switching:
-- `Database:Provider=sqlite` for lightweight/local usage.
-- `Database:Provider=sqlserver` for SQL Server environments.
+The application uses Entity Framework Core with SQL Server only:
+- `Database:Provider=sqlserver`.
+- The active connection string is `ConnectionStrings:SqlServer`.
 
 Schema is created from domain entities via `WeatherDbContext`:
 - `WeatherAssessmentApp.Infrastructure/Persistence/WeatherDbContext.cs`
@@ -366,28 +405,25 @@ Services:
 - API: `http://localhost:5044`
 - Frontend: `http://localhost:4200`
 
-## 14. Methodology Used
+## 14. Brief Architecture Decisions
 
-The implementation follows a practical layered methodology:
-
-1. Domain-first modeling
-   - Entities and invariants modeled in `Domain`.
-2. Use-case driven application services
-   - Orchestration in `Application` via interfaces and DTO contracts.
-3. Infrastructure adapters
-   - EF repositories, external API clients, background jobs in `Infrastructure`.
-4. Thin delivery layer
-   - Controllers in `Web` expose REST endpoints and rely on service abstractions.
-5. Reactive frontend composition
-   - Angular services + RxJS store patterns for state and UI synchronization.
-6. Incremental validation
-   - Migrations, unit tests, and run/build checks used during changes.
+1. Clean Architecture boundaries
+   - Domain, Application, Infrastructure, and Web are split to isolate business rules from framework and infrastructure concerns.
+2. SQL Server persistence
+   - EF Core with SQL Server is used for transactional consistency, relational querying, and straightforward migrations.
+3. Thin API layer
+   - Controllers stay lightweight and delegate business workflows to application services.
+4. Infrastructure adapters
+   - External weather provider integration, persistence repositories, and background sync are implemented behind interfaces.
+5. Decoupled frontend
+   - Angular frontend consumes REST endpoints and keeps UI state/store concerns separate from backend logic.
+6. Operational resilience
+   - Startup migrations, seeded demo data, global exception handling, rate limiting, and background synchronization support predictable runtime behavior.
 
 ## 15. Dependency Summary
 
 ### Backend NuGet (key packages)
 - `Microsoft.EntityFrameworkCore` 8.x
-- `Microsoft.EntityFrameworkCore.Sqlite` 8.x
 - `Microsoft.EntityFrameworkCore.SqlServer` 8.x
 - `Swashbuckle.AspNetCore` 6.x
 
@@ -418,7 +454,7 @@ The implementation follows a practical layered methodology:
 - Try manual sync endpoint from Swagger.
 
 ### Migration or database issues
-- Confirm selected provider (`sqlite` or `sqlserver`) and matching connection string.
+- Confirm `Database:Provider` is `sqlserver` and `ConnectionStrings:SqlServer` is valid.
 - Re-run migrations using `dotnet ef database update`.
 
 ## 18. Recommended Next Improvements
