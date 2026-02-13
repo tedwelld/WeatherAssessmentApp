@@ -39,10 +39,24 @@
 
   <section class="panel country-forecasts glass-panel">
     <header>
-      <h2>Country Forecasts</h2>
+      <div class="country-header-top">
+        <h2>Country Forecasts</h2>
+        <div class="country-actions">
+          <button type="button" class="btn small ghost" (click)="exportSelectedCountryPdf()" [disabled]="vm.exportingPdf">
+            Export Selected PDF
+          </button>
+          <button type="button" class="btn small ghost" (click)="exportAllCountriesPdf()" [disabled]="vm.exportingPdf">
+            Export All PDF
+          </button>
+        </div>
+      </div>
       <p class="hint">Click a country card to load its 5-day forecast and view clustered bars plus a single-line metric trend.</p>
+      <p class="hint" *ngIf="isAnyCountryExpanded(vm.expandedCountries)">Showing one country at a time. Collapse to switch countries.</p>
     </header>
-    <div class="country-grid" *ngIf="vm.countryCards.length > 0; else noCountryCards">
+    <div
+      class="country-grid"
+      [class.single-expanded]="isAnyCountryExpanded(vm.expandedCountries)"
+      *ngIf="vm.countryCards.length > 0; else noCountryCards">
       <article
         class="country-card"
         [class.expanded]="vm.expandedCountries[card.country]"
@@ -50,7 +64,7 @@
         [attr.tabindex]="card.locationId ? 0 : -1"
         (click)="toggleCountryCard(card)"
         (keydown)="onCountryCardKeydown($event, card)"
-        *ngFor="let card of vm.countryCards; trackBy: trackByCountry">
+        *ngFor="let card of getVisibleCountryCards(vm.countryCards, vm.expandedCountries); trackBy: trackByCountry">
         <div class="country-header">
           <div>
             <h3>{{ card.country }}</h3>

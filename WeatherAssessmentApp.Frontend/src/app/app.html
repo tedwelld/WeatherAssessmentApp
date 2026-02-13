@@ -23,13 +23,49 @@
 
 <div class="app-shell">
   <header class="top-nav glass-nav">
-    <a routerLink="/" class="brand">Weather Scope</a>
-    <p>Liquid Weather Command Center</p>
+    <div class="nav-left">
+      <a routerLink="/" class="brand">Weather Scope</a>
+      <p>Liquid Weather Command Center</p>
+    </div>
+    <div class="nav-actions">
+      <button type="button" class="nav-btn" (click)="toggleTheme()">
+        <span *ngIf="mode$ | async as mode">
+          {{ mode === 'normal' ? 'Switch to Color' : 'Switch to Black & White' }}
+        </span>
+      </button>
+      <button type="button" class="nav-btn alert-btn" (click)="toggleNotificationsPanel()" aria-label="Open updates">
+        <span class="icon">&#128276;</span>
+        <span class="badge" *ngIf="(unreadCount$ | async) as unreadCount" [class.hidden]="unreadCount <= 0">
+          {{ unreadCount }}
+        </span>
+      </button>
+    </div>
   </header>
+
+  <section class="notification-panel glass-nav" *ngIf="notificationsOpen">
+    <header>
+      <h3>Updates</h3>
+      <button type="button" class="nav-btn small" (click)="clearNotifications()">Clear</button>
+    </header>
+    <ul *ngIf="notifications$ | async as notifications">
+      <li *ngFor="let notification of notifications" [ngClass]="notification.type">
+        <p>{{ notification.message }}</p>
+        <time>{{ notification.createdAtUtc | date: 'short' }}</time>
+      </li>
+      <li *ngIf="notifications.length === 0" class="empty">
+        <p>No updates yet.</p>
+      </li>
+    </ul>
+  </section>
 
   <router-outlet></router-outlet>
 
-  <footer class="app-footer glass-nav">
-    powered by yourITguy - Tedwell👨‍💻.
-  </footer>
+  <section class="toast-stack" *ngIf="toasts$ | async as toasts">
+    <article class="toast glass-nav" *ngFor="let toast of toasts" [ngClass]="toast.type">
+      <p>{{ toast.message }}</p>
+      <button type="button" class="close-toast" (click)="dismissToast(toast.id)" aria-label="Dismiss message">x</button>
+    </article>
+  </section>
+
+  <footer class="app-footer glass-nav">powered by yourITguy - Tedwell.</footer>
 </div>

@@ -3,7 +3,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { BehaviorSubject, combineLatest, finalize, map, startWith } from 'rxjs';
+import { BehaviorSubject, combineLatest, finalize, firstValueFrom, map, startWith } from 'rxjs';
 import {
   CurrentWeatherDto,
   DailyWeatherPointDto,
@@ -13,6 +13,8 @@ import {
   TemperatureUnit,
   UserPreferencesDto
 } from '../../core/models';
+import { NotificationCenterService } from '../../core/services/notification-center.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import { WeatherVisualService } from '../../core/services/weather-visual.service';
 import { WeatherStoreService } from '../../core/store/weather-store.service';
 
@@ -27,6 +29,7 @@ interface DashboardViewModel {
   expandedCountries: Record<string, boolean>;
   selectedCountryMetric: Partial<Record<string, CountryMetricKey>>;
   syncHistory: SyncOperationDto[];
+  exportingPdf: boolean;
   preferences: UserPreferencesDto | null;
   loading: boolean;
   error: string | null;
@@ -96,12 +99,17 @@ export class DashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(WeatherStoreService);
   private readonly weatherVisual = inject(WeatherVisualService);
+  private readonly notifications = inject(NotificationCenterService);
+  private readonly pdfExport = inject(PdfExportService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly countryForecastsSubject = new BehaviorSubject<Record<string, CountryForecastState>>({});
   private readonly countryForecastLoadingSubject = new BehaviorSubject<Record<string, boolean>>({});
   private readonly expandedCountriesSubject = new BehaviorSubject<Record<string, boolean>>({});
   private readonly selectedCountryMetricSubject = new BehaviorSubject<Partial<Record<string, CountryMetricKey>>>({});
+  private readonly exportingPdfSubject = new BehaviorSubject<boolean>(false);
+  private currentLocations: LocationDto[] = [];
+  private currentWeatherByLocation: Record<number, CurrentWeatherDto> = {};
 
   private readonly metricPalette: Record<CountryMetricKey, string> = {
     temperature: '#e07a2f',
@@ -125,6 +133,7 @@ export class DashboardComponent implements OnInit {
     weather: this.store.currentWeather$,
     preferences: this.store.preferences$,
     syncHistory: this.store.syncHistory$,
+    exportingPdf: this.exportingPdfSubject,
     loading: this.store.isLoading$,
     error: this.store.error$,
     countryForecasts: this.countryForecastsSubject,
@@ -138,6 +147,7 @@ export class DashboardComponent implements OnInit {
         weather,
         preferences,
         syncHistory,
+        exportingPdf,
         loading,
         error,
         countryForecasts,
@@ -162,6 +172,7 @@ export class DashboardComponent implements OnInit {
         expandedCountries,
         selectedCountryMetric,
         syncHistory,
+        exportingPdf,
         preferences,
         loading,
         error
@@ -193,6 +204,14 @@ export class DashboardComponent implements OnInit {
     combineLatest([this.store.locations$, this.store.currentWeather$])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([locations, weatherItems]) => {
+        this.currentLocations = locations;
+        this.currentWeatherByLocation = weatherItems
+          .filter((item) => item.locationId !== null)
+          .reduce<Record<number, CurrentWeatherDto>>((acc, item) => {
+            acc[item.locationId as number] = item;
+            return acc;
+          }, {});
+
         const selectedLocation = locations.find((location) => location.isFavorite) ?? locations[0];
         const selectedWeather = selectedLocation
           ? weatherItems.find((weather) => weather.locationId === selectedLocation.id)
@@ -219,25 +238,52 @@ export class DashboardComponent implements OnInit {
     }
 
     const formValue = this.addCityForm.getRawValue();
+    const previousCountries = this.getCountrySet(this.currentLocations);
+    const cityName = formValue.city?.trim() ?? '';
     this.store
       .addLocation({
-        city: formValue.city?.trim() ?? '',
+        city: cityName,
         country: formValue.country?.trim() || null,
         isFavorite: formValue.favorite ?? false
       })
-      .subscribe(() => this.addCityForm.reset({ city: '', country: '', favorite: false }));
+      .subscribe(() => {
+        this.addCityForm.reset({ city: '', country: '', favorite: false });
+        this.notifications.notify(`City added to watchlist: ${cityName}`, 'success');
+
+        const currentCountries = this.getCountrySet(this.currentLocations);
+        const addedCountries = this.getCountryDifference(currentCountries, previousCountries);
+        if (addedCountries.length > 0) {
+          this.notifications.notify(`New country added: ${addedCountries.join(', ')}`, 'success', { showToast: true });
+        }
+      });
   }
 
   deleteLocation(locationId: number): void {
-    this.store.deleteLocation(locationId).subscribe();
+    const previousCountries = this.getCountrySet(this.currentLocations);
+    const location = this.currentLocations.find((item) => item.id === locationId);
+    this.store.deleteLocation(locationId).subscribe(() => {
+      if (location) {
+        this.notifications.notify(`City removed from watchlist: ${location.city}, ${location.country}`, 'warning');
+      }
+
+      const currentCountries = this.getCountrySet(this.currentLocations);
+      const removedCountries = this.getCountryDifference(previousCountries, currentCountries);
+      if (removedCountries.length > 0) {
+        this.notifications.notify(`Country removed: ${removedCountries.join(', ')}`, 'warning', { showToast: true });
+      }
+    });
   }
 
   refreshLocation(locationId: number): void {
-    this.store.refreshLocation(locationId).subscribe();
+    this.store.refreshLocation(locationId).subscribe(() => {
+      this.notifications.notify('Location weather refreshed.', 'info');
+    });
   }
 
   refreshAll(): void {
-    this.store.refreshAll().subscribe();
+    this.store.refreshAll().subscribe(() => {
+      this.notifications.notify('All tracked locations refreshed.', 'info', { showToast: true });
+    });
   }
 
   toggleFavorite(location: LocationDto): void {
@@ -245,7 +291,12 @@ export class DashboardComponent implements OnInit {
       .updateLocation(location.id, {
         isFavorite: !location.isFavorite
       })
-      .subscribe();
+      .subscribe(() => {
+        this.notifications.notify(
+          !location.isFavorite ? `Marked favorite: ${location.city}` : `Removed favorite: ${location.city}`,
+          'info'
+        );
+      });
   }
 
   savePreferences(): void {
@@ -260,7 +311,9 @@ export class DashboardComponent implements OnInit {
         units: (formValue.units as 'metric' | 'imperial') ?? 'metric',
         refreshIntervalMinutes: formValue.refreshIntervalMinutes ?? 30
       })
-      .subscribe();
+      .subscribe(() => {
+        this.notifications.notify('Preferences updated.', 'success');
+      });
   }
 
   getTempUnit(units: TemperatureUnit | undefined): string {
@@ -301,13 +354,14 @@ export class DashboardComponent implements OnInit {
     }
 
     const key = card.country;
-    const wasExpanded = this.expandedCountriesSubject.value[key];
-    const expanded = { ...this.expandedCountriesSubject.value, [key]: !wasExpanded };
-    this.expandedCountriesSubject.next(expanded);
-
-    if (!expanded[key]) {
+    const wasExpanded = this.expandedCountriesSubject.value[key] ?? false;
+    if (wasExpanded) {
+      this.expandedCountriesSubject.next({});
       return;
     }
+
+    // Accordion behavior: keep only one country forecast panel open at a time.
+    this.expandedCountriesSubject.next({ [key]: true });
 
     if (!this.selectedCountryMetricSubject.value[key]) {
       this.selectedCountryMetricSubject.next({
@@ -384,6 +438,84 @@ export class DashboardComponent implements OnInit {
     return item.country;
   }
 
+  isAnyCountryExpanded(expandedCountries: Record<string, boolean>): boolean {
+    return Object.values(expandedCountries).some((value) => value);
+  }
+
+  getVisibleCountryCards(
+    cards: CountryCardViewModel[],
+    expandedCountries: Record<string, boolean>
+  ): CountryCardViewModel[] {
+    const expandedCountry = Object.entries(expandedCountries).find((entry) => entry[1])?.[0];
+    if (!expandedCountry) {
+      return cards;
+    }
+
+    return cards.filter((card) => card.country === expandedCountry);
+  }
+
+  async exportSelectedCountryPdf(): Promise<void> {
+    const expandedCountry = Object.entries(this.expandedCountriesSubject.value).find((entry) => entry[1])?.[0];
+    if (!expandedCountry) {
+      this.notifications.notify('Select a country card first, then export selected PDF.', 'warning', { showToast: true });
+      return;
+    }
+
+    const card = this.getCountryCardsSnapshot().find((item) => item.country === expandedCountry && item.locationId);
+    if (!card || !card.locationId) {
+      this.notifications.notify('Unable to export selected country.', 'error', { showToast: true });
+      return;
+    }
+
+    this.exportingPdfSubject.next(true);
+
+    try {
+      const forecast = await this.getForecastForCard(card);
+      if (!forecast) {
+        this.notifications.notify(`No forecast data found for ${expandedCountry}.`, 'warning', { showToast: true });
+        return;
+      }
+
+      await this.pdfExport.exportCountryForecast(expandedCountry, forecast);
+      this.notifications.notify(`Exported PDF for ${expandedCountry}.`, 'success', { showToast: true });
+    } finally {
+      this.exportingPdfSubject.next(false);
+    }
+  }
+
+  async exportAllCountriesPdf(): Promise<void> {
+    const cards = this.getCountryCardsSnapshot().filter((item) => item.locationId);
+    if (cards.length === 0) {
+      this.notifications.notify('No countries available to export.', 'warning', { showToast: true });
+      return;
+    }
+
+    this.exportingPdfSubject.next(true);
+
+    try {
+      const results = await Promise.all(
+        cards.map(async (card) => {
+          const forecast = await this.getForecastForCard(card);
+          return { country: card.country, forecast };
+        })
+      );
+
+      const validResults = results
+        .filter((result) => result.forecast)
+        .map((result) => ({ country: result.country, forecast: result.forecast as NextFiveDayForecastDto }));
+
+      if (validResults.length === 0) {
+        this.notifications.notify('Unable to export. No forecast data available.', 'warning', { showToast: true });
+        return;
+      }
+
+      await this.pdfExport.exportAllCountryForecasts(validResults);
+      this.notifications.notify('Exported PDF for all countries.', 'success', { showToast: true });
+    } finally {
+      this.exportingPdfSubject.next(false);
+    }
+  }
+
   private setCountryLoading(key: string, isLoading: boolean): void {
     this.countryForecastLoadingSubject.next({
       ...this.countryForecastLoadingSubject.value,
@@ -417,6 +549,42 @@ export class DashboardComponent implements OnInit {
         };
       })
       .sort((a, b) => a.country.localeCompare(b.country));
+  }
+
+  private getCountryCardsSnapshot(): CountryCardViewModel[] {
+    return this.buildCountryCards(this.currentLocations, this.currentWeatherByLocation);
+  }
+
+  private getCountrySet(locations: LocationDto[]): Set<string> {
+    return new Set(locations.map((location) => (location.country?.trim().toUpperCase() || 'N/A').trim()));
+  }
+
+  private getCountryDifference(source: Set<string>, target: Set<string>): string[] {
+    return [...source].filter((country) => !target.has(country));
+  }
+
+  private async getForecastForCard(card: CountryCardViewModel): Promise<NextFiveDayForecastDto | null> {
+    const cached = this.countryForecastsSubject.value[card.country]?.forecast;
+    if (cached) {
+      return cached;
+    }
+
+    if (!card.locationId) {
+      return null;
+    }
+
+    try {
+      const forecast = await firstValueFrom(this.store.getNextFiveDays(card.locationId));
+      const barChart = this.buildCountryBarChart(forecast);
+      const lineCharts = this.buildCountryLineCharts(forecast);
+      this.countryForecastsSubject.next({
+        ...this.countryForecastsSubject.value,
+        [card.country]: { forecast, barChart, lineCharts }
+      });
+      return forecast;
+    } catch {
+      return null;
+    }
   }
 
   private buildCountryBarChart(forecast: NextFiveDayForecastDto): CountryClusteredBarChartViewModel {

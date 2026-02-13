@@ -37,6 +37,178 @@
   border-radius: 18px;
 }
 
+.nav-left {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.nav-btn {
+  border: 1px solid rgba(191, 226, 245, 0.7);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(232, 247, 255, 0.42));
+  color: #1a4f6e;
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nav-btn.small {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.nav-btn:hover {
+  transform: translateY(-1px);
+}
+
+.alert-btn {
+  position: relative;
+  padding: 0.42rem 0.58rem;
+}
+
+.icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.badge {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  background: #bd4738;
+  color: #fff;
+  font-size: 0.67rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.badge.hidden {
+  display: none;
+}
+
+.notification-panel {
+  margin: 0 1rem;
+  border-radius: 16px;
+  padding: 0.7rem;
+}
+
+.notification-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.notification-panel h3 {
+  margin: 0;
+  color: #19445f;
+}
+
+.notification-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.notification-panel li {
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(187, 223, 244, 0.7);
+}
+
+.notification-panel li p {
+  margin: 0;
+  color: rgba(18, 59, 85, 0.86);
+}
+
+.notification-panel li time {
+  color: rgba(18, 59, 85, 0.64);
+  font-size: 0.75rem;
+}
+
+.notification-panel li.success {
+  border-left: 4px solid #2a9159;
+}
+
+.notification-panel li.warning {
+  border-left: 4px solid #bd8a26;
+}
+
+.notification-panel li.error {
+  border-left: 4px solid #bf3d36;
+}
+
+.notification-panel li.info {
+  border-left: 4px solid #2f89c1;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 30;
+  display: grid;
+  gap: 0.5rem;
+  width: min(360px, calc(100vw - 2rem));
+}
+
+.toast {
+  border-radius: 12px;
+  padding: 0.55rem 0.68rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.toast p {
+  margin: 0;
+  color: rgba(18, 59, 85, 0.88);
+  font-size: 0.86rem;
+}
+
+.toast.success {
+  border-left: 4px solid #2a9159;
+}
+
+.toast.warning {
+  border-left: 4px solid #bd8a26;
+}
+
+.toast.error {
+  border-left: 4px solid #bf3d36;
+}
+
+.toast.info {
+  border-left: 4px solid #2f89c1;
+}
+
+.close-toast {
+  border: none;
+  background: transparent;
+  color: rgba(18, 59, 85, 0.7);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .app-footer {
   margin: 0.8rem 1rem 1rem;
   border-radius: 18px;
@@ -302,9 +474,13 @@
   .top-nav {
     margin: 0.7rem;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0.45rem;
     top: 0.5rem;
+  }
+
+  .nav-actions {
+    justify-content: flex-end;
   }
 
   .brand {
@@ -313,6 +489,10 @@
 
   .top-nav p {
     font-size: 0.78rem;
+  }
+
+  .notification-panel {
+    margin: 0 0.7rem;
   }
 
   .rain-field {

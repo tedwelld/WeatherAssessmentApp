@@ -1,5 +1,7 @@
 export type TemperatureUnit = 'Metric' | 'Imperial';
 export type SyncOperationType = 'LocationRefresh' | 'RefreshAll';
+export type AppNotificationType = 'info' | 'success' | 'warning' | 'error';
+export type ThemeMode = 'normal' | 'color';
 
 export interface LocationDto {
   id: number;
@@ -108,4 +110,18 @@ export interface ApiErrorResponse {
   message: string;
   detail: string | null;
   traceId: string;
+}
+
+export interface AppNotification {
+  id: number;
+  message: string;
+  type: AppNotificationType;
+  createdAtUtc: string;
+  unread: boolean;
+}
+
+export interface AppToastMessage {
+  id: number;
+  message: string;
+  type: AppNotificationType;
 }

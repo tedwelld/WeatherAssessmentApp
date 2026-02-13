@@ -34,6 +34,14 @@ body {
   background-attachment: fixed;
 }
 
+body.theme-normal {
+  filter: grayscale(1);
+}
+
+body.theme-color {
+  filter: none;
+}
+
 a,
 button,
 h1,

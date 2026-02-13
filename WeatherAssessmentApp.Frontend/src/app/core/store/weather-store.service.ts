@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, EMPTY, Observable, catchError, finalize, forkJoin, map, switchMap, tap } from 'rxjs';
 import { WeatherApiService } from '../services/weather-api.service';
+import { NotificationCenterService } from '../services/notification-center.service';
 import {
   CreateLocationRequest,
   CurrentWeatherDto,
@@ -22,6 +23,7 @@ export class WeatherStoreService {
   private readonly syncHistorySubject = new BehaviorSubject<SyncOperationDto[]>([]);
   private readonly isLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
+  private readonly knownSyncOperationIds = new Set<number>();
 
   readonly locations$ = this.locationsSubject.asObservable();
   readonly currentWeather$ = this.currentWeatherSubject.asObservable();
@@ -30,7 +32,10 @@ export class WeatherStoreService {
   readonly isLoading$ = this.isLoadingSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
 
-  constructor(private readonly api: WeatherApiService) {}
+  constructor(
+    private readonly api: WeatherApiService,
+    private readonly notifications: NotificationCenterService
+  ) {}
 
   loadInitialData(): Observable<void> {
     this.isLoadingSubject.next(true);
@@ -46,7 +51,7 @@ export class WeatherStoreService {
         this.locationsSubject.next(locations);
         this.currentWeatherSubject.next(weather);
         this.preferencesSubject.next(preferences);
-        this.syncHistorySubject.next(syncHistory);
+        this.setSyncHistory(syncHistory, false);
       }),
       map(() => void 0),
       catchError((error) => this.handleError(error)),
@@ -158,7 +163,7 @@ export class WeatherStoreService {
         this.locationsSubject.next(locations);
         this.currentWeatherSubject.next(weather);
         this.preferencesSubject.next(preferences);
-        this.syncHistorySubject.next(syncHistory);
+        this.setSyncHistory(syncHistory, true);
       }),
       map(() => void 0),
       catchError((error) => this.handleError(error))
@@ -172,6 +177,31 @@ export class WeatherStoreService {
       error?.message ||
       'Unable to complete request.';
     this.errorSubject.next(message);
+    this.notifications.notify(message, 'error', { showToast: true });
     return EMPTY;
+  }
+
+  private setSyncHistory(syncHistory: SyncOperationDto[], announceUpdates: boolean): void {
+    this.syncHistorySubject.next(syncHistory);
+
+    const newItems = syncHistory
+      .filter((item) => !this.knownSyncOperationIds.has(item.id))
+      .sort((a, b) => a.id - b.id);
+
+    if (announceUpdates) {
+      newItems.forEach((item) => {
+        this.notifications.notify(this.formatSyncNotification(item), 'info');
+      });
+    }
+
+    newItems.forEach((item) => this.knownSyncOperationIds.add(item.id));
+  }
+
+  private formatSyncNotification(item: SyncOperationDto): string {
+    if (item.type === 'RefreshAll') {
+      return `Sync updated ${item.refreshedLocations} location(s), ${item.snapshotsCreated} snapshot(s) changed.`;
+    }
+
+    return `Location sync completed for ${item.locationDisplayName}.`;
   }
 }
