@@ -64,6 +64,9 @@
 
         <div class="country-body" *ngIf="vm.expandedCountries[card.country]">
           <p class="state-text" *ngIf="vm.countryForecastLoading[card.country]">Loading forecast...</p>
+          <p class="state-text" *ngIf="!vm.countryForecastLoading[card.country] && !vm.countryForecasts[card.country]">
+            Forecast data unavailable right now.
+          </p>
           <ng-container *ngIf="!vm.countryForecastLoading[card.country] && vm.countryForecasts[card.country] as state">
             <p class="state-text" *ngIf="state.forecast.days.length === 0">No forecast data available.</p>
             <div class="forecast-days" *ngIf="state.forecast.days.length > 0">
@@ -267,6 +270,7 @@
 
       <footer>
         <button type="button" class="btn small action-button" (click)="refreshLocation(location.id)" [disabled]="vm.loading">Refresh</button>
+        <a class="btn small ghost" [routerLink]="['/forecast', location.id]">Forecast</a>
         <button type="button" class="btn small danger" (click)="deleteLocation(location.id)" [disabled]="vm.loading">Remove</button>
       </footer>
     </article>

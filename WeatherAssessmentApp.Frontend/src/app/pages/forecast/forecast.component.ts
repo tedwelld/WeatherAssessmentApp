@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BehaviorSubject, finalize, map, switchMap, tap } from 'rxjs';
@@ -18,6 +18,7 @@ export class ForecastComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(WeatherStoreService);
   private readonly weatherVisual = inject(WeatherVisualService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading$ = new BehaviorSubject<boolean>(true);
   readonly forecast$ = new BehaviorSubject<NextFiveDayForecastDto | null>(null);
@@ -30,7 +31,7 @@ export class ForecastComponent implements OnInit {
           this.loading$.next(true);
           this.forecast$.next(null);
         }),
-        takeUntilDestroyed(),
+        takeUntilDestroyed(this.destroyRef),
         map((params) => Number(params.get('id'))),
         switchMap((id) =>
           this.store.getNextFiveDays(id).pipe(

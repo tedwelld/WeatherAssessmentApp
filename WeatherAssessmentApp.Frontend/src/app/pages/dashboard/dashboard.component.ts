@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { BehaviorSubject, combineLatest, finalize, map, startWith } from 'rxjs';
 import {
   CurrentWeatherDto,
@@ -87,7 +88,7 @@ interface SingleMetricLineChartViewModel {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
@@ -95,6 +96,7 @@ export class DashboardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(WeatherStoreService);
   private readonly weatherVisual = inject(WeatherVisualService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly countryForecastsSubject = new BehaviorSubject<Record<string, CountryForecastState>>({});
   private readonly countryForecastLoadingSubject = new BehaviorSubject<Record<string, boolean>>({});
@@ -173,7 +175,7 @@ export class DashboardComponent implements OnInit {
 
     this.store.preferences$
       .pipe(startWith(null))
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((preferences) => {
         if (!preferences) {
           return;
@@ -189,7 +191,7 @@ export class DashboardComponent implements OnInit {
       });
 
     combineLatest([this.store.locations$, this.store.currentWeather$])
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([locations, weatherItems]) => {
         const selectedLocation = locations.find((location) => location.isFavorite) ?? locations[0];
         const selectedWeather = selectedLocation
@@ -323,7 +325,7 @@ export class DashboardComponent implements OnInit {
       .getNextFiveDays(card.locationId)
       .pipe(
         finalize(() => this.setCountryLoading(key, false)),
-        takeUntilDestroyed()
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
         next: (forecast) => {
@@ -333,6 +335,9 @@ export class DashboardComponent implements OnInit {
             ...this.countryForecastsSubject.value,
             [key]: { forecast, barChart, lineCharts }
           });
+        },
+        error: () => {
+          this.setCountryLoading(key, false);
         }
       });
   }
