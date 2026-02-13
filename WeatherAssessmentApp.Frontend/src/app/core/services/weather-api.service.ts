@@ -6,6 +6,7 @@ import {
   CurrentWeatherDto,
   LocationDto,
   NextFiveDayForecastDto,
+  SyncOperationDto,
   WeatherTimelineDto,
   UpdateLocationRequest,
   UpdateUserPreferencesRequest,
@@ -41,6 +42,11 @@ export class WeatherApiService {
 
   refreshAll(): Observable<{ refreshedLocations: number; refreshedAtUtc: string }> {
     return this.http.post<{ refreshedLocations: number; refreshedAtUtc: string }>(`${this.apiBaseUrl}/sync/refresh-all`, {});
+  }
+
+  getSyncHistory(take = 20): Observable<SyncOperationDto[]> {
+    const params = new HttpParams().set('take', take);
+    return this.http.get<SyncOperationDto[]>(`${this.apiBaseUrl}/sync/history`, { params });
   }
 
   getTrackedCurrentWeather(): Observable<CurrentWeatherDto[]> {

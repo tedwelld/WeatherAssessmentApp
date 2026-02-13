@@ -16,7 +16,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddApplication();
+builder.Services.AddApplication(); // Includes sync history services.
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddCors(options =>
@@ -67,6 +67,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<WeatherDbContext>();
     await dbContext.Database.MigrateAsync();
+    await dbContext.SeedDemoLocationsAsync();
 }
 
 app.Run();

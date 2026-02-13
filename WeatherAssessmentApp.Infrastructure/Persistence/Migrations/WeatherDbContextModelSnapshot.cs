@@ -75,6 +75,44 @@ namespace WeatherAssessmentApp.Infrastructure.Persistence.Migrations
                     b.ToTable("Locations", (string)null);
                 });
 
+            modelBuilder.Entity("WeatherAssessmentApp.Domain.Entities.SyncOperation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LocationDisplayName")
+                        .IsRequired()
+                        .HasMaxLength(192)
+                        .HasColumnType("nvarchar(192)");
+
+                    b.Property<int?>("LocationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RefreshedLocations")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SnapshotsCreated")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.ToTable("SyncOperations", (string)null);
+                });
+
             modelBuilder.Entity("WeatherAssessmentApp.Domain.Entities.UserPreferences", b =>
                 {
                     b.Property<int>("Id")
@@ -160,6 +198,16 @@ namespace WeatherAssessmentApp.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("UserPreferences");
+                });
+
+            modelBuilder.Entity("WeatherAssessmentApp.Domain.Entities.SyncOperation", b =>
+                {
+                    b.HasOne("WeatherAssessmentApp.Domain.Entities.Location", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Location");
                 });
 
             modelBuilder.Entity("WeatherAssessmentApp.Domain.Entities.WeatherSnapshot", b =>

@@ -1,4 +1,5 @@
 export type TemperatureUnit = 'Metric' | 'Imperial';
+export type SyncOperationType = 'LocationRefresh' | 'RefreshAll';
 
 export interface LocationDto {
   id: number;
@@ -74,6 +75,16 @@ export interface UserPreferencesDto {
   units: TemperatureUnit;
   refreshIntervalMinutes: number;
   updatedAtUtc: string;
+}
+
+export interface SyncOperationDto {
+  id: number;
+  type: SyncOperationType;
+  locationId: number | null;
+  locationDisplayName: string;
+  refreshedLocations: number;
+  snapshotsCreated: number;
+  occurredAtUtc: string;
 }
 
 export interface CreateLocationRequest {

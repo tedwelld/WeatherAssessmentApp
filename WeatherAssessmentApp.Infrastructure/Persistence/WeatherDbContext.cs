@@ -13,6 +13,7 @@ public sealed class WeatherDbContext : DbContext
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<WeatherSnapshot> WeatherSnapshots => Set<WeatherSnapshot>();
     public DbSet<UserPreferences> UserPreferences => Set<UserPreferences>();
+    public DbSet<SyncOperation> SyncOperations => Set<SyncOperation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,6 +64,26 @@ public sealed class WeatherDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(x => new { x.LocationId, x.ObservedAtUtc });
+        });
+
+        modelBuilder.Entity<SyncOperation>(entity =>
+        {
+            entity.ToTable("SyncOperations");
+            entity.Property(x => x.Type)
+                .HasConversion(
+                    value => value.ToString(),
+                    value => Enum.Parse<SyncOperationType>(value, true));
+            entity.Property(x => x.LocationDisplayName).HasMaxLength(192).IsRequired();
+            entity.Property(x => x.RefreshedLocations).IsRequired();
+            entity.Property(x => x.SnapshotsCreated).IsRequired();
+            entity.Property(x => x.OccurredAtUtc).IsRequired();
+
+            entity.HasOne(x => x.Location)
+                .WithMany()
+                .HasForeignKey(x => x.LocationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.OccurredAtUtc);
         });
     }
 }

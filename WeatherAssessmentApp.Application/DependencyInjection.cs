@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<IWeatherService, WeatherService>();
         services.AddScoped<IUserPreferencesService, UserPreferencesService>();
         services.AddScoped<IWeatherSyncService, WeatherSyncService>();
+        services.AddScoped<ISyncHistoryService, SyncHistoryService>();
 
         return services;
     }

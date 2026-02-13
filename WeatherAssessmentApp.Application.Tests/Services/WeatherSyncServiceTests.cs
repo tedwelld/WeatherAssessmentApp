@@ -16,6 +16,7 @@ public class WeatherSyncServiceTests
     private readonly Mock<ILocationRepository> _locationRepository = new();
     private readonly Mock<IUserPreferencesRepository> _preferencesRepository = new();
     private readonly Mock<IWeatherSnapshotRepository> _snapshotRepository = new();
+    private readonly Mock<ISyncOperationRepository> _syncOperationRepository = new();
     private readonly Mock<IWeatherProviderClient> _weatherProvider = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
@@ -56,6 +57,7 @@ public class WeatherSyncServiceTests
         await service.RefreshLocationAsync(5, CancellationToken.None);
 
         _snapshotRepository.Verify(x => x.AddAsync(It.IsAny<WeatherSnapshot>(), It.IsAny<CancellationToken>()), Times.Once);
+        _syncOperationRepository.Verify(x => x.AddAsync(It.IsAny<SyncOperation>(), It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         location.LastWeatherFingerprint.Should().Be(ComputeFingerprint(external));
         location.LastSyncedAtUtc.Should().NotBeNull();
@@ -98,6 +100,7 @@ public class WeatherSyncServiceTests
         await service.RefreshLocationAsync(8, CancellationToken.None);
 
         _snapshotRepository.Verify(x => x.AddAsync(It.IsAny<WeatherSnapshot>(), It.IsAny<CancellationToken>()), Times.Never);
+        _syncOperationRepository.Verify(x => x.AddAsync(It.IsAny<SyncOperation>(), It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -107,6 +110,7 @@ public class WeatherSyncServiceTests
             _locationRepository.Object,
             _preferencesRepository.Object,
             _snapshotRepository.Object,
+            _syncOperationRepository.Object,
             _weatherProvider.Object,
             _unitOfWork.Object);
     }

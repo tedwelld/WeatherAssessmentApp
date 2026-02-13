@@ -14,21 +14,52 @@
     <p><span>Sync Interval</span><strong>{{ prefs.refreshIntervalMinutes }} min</strong></p>
   </section>
 
+  <section class="panel sync-history glass-panel">
+    <header>
+      <h2>Recent Sync Activity</h2>
+      <p class="hint">Latest sync runs persisted by the backend.</p>
+    </header>
+    <ul class="sync-list" *ngIf="vm.syncHistory.length > 0; else noSyncHistory">
+      <li class="sync-item" *ngFor="let item of vm.syncHistory">
+        <div>
+          <p class="sync-type">{{ getSyncOperationTypeLabel(item.type) }}</p>
+          <p class="sync-location">{{ item.locationDisplayName }}</p>
+        </div>
+        <div class="sync-meta">
+          <p>{{ item.refreshedLocations }} location(s)</p>
+          <p>{{ item.snapshotsCreated }} snapshot(s)</p>
+          <p>{{ formatTimestamp(item.occurredAtUtc) }}</p>
+        </div>
+      </li>
+    </ul>
+    <ng-template #noSyncHistory>
+      <p class="hint">No sync operations recorded yet.</p>
+    </ng-template>
+  </section>
+
   <section class="panel country-forecasts glass-panel">
     <header>
       <h2>Country Forecasts</h2>
-      <p class="hint">Click a country card to load its 5-day forecast, icons, and temperature trend.</p>
+      <p class="hint">Click a country card to load its 5-day forecast and view clustered bars plus a single-line metric trend.</p>
     </header>
     <div class="country-grid" *ngIf="vm.countryCards.length > 0; else noCountryCards">
-      <article class="country-card" *ngFor="let card of vm.countryCards; trackBy: trackByCountry">
+      <article
+        class="country-card"
+        [class.expanded]="vm.expandedCountries[card.country]"
+        [class.clickable]="!!card.locationId"
+        [attr.tabindex]="card.locationId ? 0 : -1"
+        (click)="toggleCountryCard(card)"
+        (keydown)="onCountryCardKeydown($event, card)"
+        *ngFor="let card of vm.countryCards; trackBy: trackByCountry">
         <div class="country-header">
           <div>
             <h3>{{ card.country }}</h3>
             <p>{{ card.locationsCount }} tracked cities</p>
           </div>
-          <button type="button" class="btn small ghost" (click)="toggleCountryForecast(card)" [disabled]="vm.loading || !card.locationId">
-            {{ vm.expandedCountries[card.country] ? 'Hide forecast' : 'View 5-day forecast' }}
-          </button>
+          <p class="hint card-state" *ngIf="card.locationId">
+            {{ vm.expandedCountries[card.country] ? 'Click to collapse' : 'Click to expand' }}
+          </p>
+          <p class="hint card-state" *ngIf="!card.locationId">No location linked</p>
         </div>
 
         <div class="country-body" *ngIf="vm.expandedCountries[card.country]">
@@ -45,38 +76,116 @@
             </div>
 
             <div class="forecast-chart" *ngIf="state.forecast.days.length > 0">
-              <svg class="line-chart" [attr.viewBox]="'0 0 ' + state.chart.width + ' ' + state.chart.height" role="img" aria-label="5-day temperature trend">
+              <p class="hint">Clustered bars are normalized per metric for easy comparison across days.</p>
+              <svg
+                class="bar-chart"
+                [attr.viewBox]="'0 0 ' + state.barChart.width + ' ' + state.barChart.height"
+                role="img"
+                aria-label="Clustered weather bars for temperature, humidity and wind">
                 <g class="grid">
-                  <line *ngFor="let grid of state.chart.gridLines" [attr.x1]="state.chart.padding" [attr.x2]="state.chart.width - state.chart.padding" [attr.y1]="grid.y" [attr.y2]="grid.y"></line>
-                  <text *ngFor="let grid of state.chart.gridLines" class="y-label" [attr.x]="12" [attr.y]="grid.y + 4">{{ grid.label }}</text>
+                  <line
+                    *ngFor="let tick of state.barChart.yAxis"
+                    [attr.x1]="state.barChart.padding"
+                    [attr.x2]="state.barChart.width - state.barChart.padding"
+                    [attr.y1]="tick.y"
+                    [attr.y2]="tick.y"></line>
+                  <text *ngFor="let tick of state.barChart.yAxis" class="y-label" [attr.x]="12" [attr.y]="tick.y + 4">{{ tick.label }}</text>
                 </g>
 
                 <g class="axis">
-                  <line [attr.x1]="state.chart.padding" [attr.x2]="state.chart.width - state.chart.padding" [attr.y1]="state.chart.height - state.chart.padding" [attr.y2]="state.chart.height - state.chart.padding"></line>
+                  <line
+                    [attr.x1]="state.barChart.padding"
+                    [attr.x2]="state.barChart.width - state.barChart.padding"
+                    [attr.y1]="state.barChart.height - state.barChart.padding"
+                    [attr.y2]="state.barChart.height - state.barChart.padding"></line>
                 </g>
 
-                <g class="series" *ngFor="let series of state.chart.series">
-                  <polyline class="series-line" [attr.points]="series.points" [attr.stroke]="series.color"></polyline>
-                  <circle *ngFor="let dot of series.dots" class="series-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" [attr.r]="4" [attr.fill]="series.color"></circle>
-                </g>
-
-                <g class="x-axis">
-                  <text *ngFor="let point of state.chart.xAxis" class="x-label" [attr.x]="point.x" [attr.y]="state.chart.height - state.chart.padding + 18">
-                    {{ point.label }}
+                <g class="bar-group" *ngFor="let group of state.barChart.groups">
+                  <rect
+                    *ngFor="let bar of group.bars"
+                    class="bar"
+                    [attr.x]="bar.x"
+                    [attr.y]="bar.y"
+                    [attr.width]="bar.width"
+                    [attr.height]="bar.height"
+                    [attr.fill]="bar.color"></rect>
+                  <text
+                    *ngFor="let bar of group.bars"
+                    class="bar-label"
+                    [attr.x]="bar.x + bar.width / 2"
+                    [attr.y]="bar.y - 5">
+                    {{ bar.valueLabel }}
+                  </text>
+                  <text
+                    class="x-label"
+                    [attr.x]="group.labelX"
+                    [attr.y]="state.barChart.height - state.barChart.padding + 18">
+                    {{ group.label }}
                   </text>
                 </g>
-
-                <text class="axis-title" [attr.x]="state.chart.width / 2" [attr.y]="state.chart.height - 6">Days</text>
-                <text class="axis-title" [attr.x]="16" [attr.y]="state.chart.height / 2" [attr.transform]="'rotate(-90 16 ' + state.chart.height / 2 + ')'">
-                  Temperature
-                </text>
               </svg>
 
               <div class="legend">
-                <div class="legend-item" *ngFor="let series of state.chart.series">
-                  <span class="legend-swatch" [style.background]="series.color"></span>
-                  <span>{{ series.label }}</span>
+                <div class="legend-item" *ngFor="let legendItem of state.barChart.legend">
+                  <span class="legend-swatch" [style.background]="legendItem.color"></span>
+                  <span>{{ legendItem.label }}</span>
                 </div>
+              </div>
+
+              <div class="line-panel">
+                <div class="metric-tabs">
+                  <button
+                    type="button"
+                    class="btn small metric-tab"
+                    [class.active]="isMetricSelected(card.country, 'temperature', vm.selectedCountryMetric)"
+                    (click)="selectCountryMetric(card.country, 'temperature', $event)">
+                    {{ getMetricButtonLabel('temperature') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn small metric-tab"
+                    [class.active]="isMetricSelected(card.country, 'humidity', vm.selectedCountryMetric)"
+                    (click)="selectCountryMetric(card.country, 'humidity', $event)">
+                    {{ getMetricButtonLabel('humidity') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn small metric-tab"
+                    [class.active]="isMetricSelected(card.country, 'windSpeed', vm.selectedCountryMetric)"
+                    (click)="selectCountryMetric(card.country, 'windSpeed', $event)">
+                    {{ getMetricButtonLabel('windSpeed') }}
+                  </button>
+                </div>
+
+                <ng-container *ngIf="state.lineCharts[(vm.selectedCountryMetric[card.country] ?? 'temperature')] as lineChart">
+                  <svg class="line-chart" [attr.viewBox]="'0 0 ' + lineChart.width + ' ' + lineChart.height" role="img" aria-label="Single metric 5-day trend line">
+                    <g class="grid">
+                      <line *ngFor="let tick of lineChart.yAxis" [attr.x1]="lineChart.padding" [attr.x2]="lineChart.width - lineChart.padding" [attr.y1]="tick.y" [attr.y2]="tick.y"></line>
+                      <text *ngFor="let tick of lineChart.yAxis" class="y-label" [attr.x]="12" [attr.y]="tick.y + 4">{{ tick.label }}</text>
+                    </g>
+
+                    <g class="axis">
+                      <line [attr.x1]="lineChart.padding" [attr.x2]="lineChart.width - lineChart.padding" [attr.y1]="lineChart.height - lineChart.padding" [attr.y2]="lineChart.height - lineChart.padding"></line>
+                    </g>
+
+                    <g class="series">
+                      <polyline class="series-line" [attr.points]="lineChart.points" [attr.stroke]="lineChart.color"></polyline>
+                      <circle *ngFor="let dot of lineChart.dots" class="series-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" [attr.r]="4" [attr.fill]="lineChart.color"></circle>
+                      <text *ngFor="let dot of lineChart.dots" class="dot-label" [attr.x]="dot.x" [attr.y]="dot.y - 9">{{ dot.valueLabel }}</text>
+                    </g>
+
+                    <g class="x-axis">
+                      <text *ngFor="let point of lineChart.xAxis" class="x-label" [attr.x]="point.x" [attr.y]="lineChart.height - lineChart.padding + 18">
+                        {{ point.label }}
+                      </text>
+                    </g>
+
+                    <text class="axis-title" [attr.x]="lineChart.width / 2" [attr.y]="lineChart.height - 6">Days</text>
+                    <text class="axis-title" [attr.x]="16" [attr.y]="lineChart.height / 2" [attr.transform]="'rotate(-90 16 ' + lineChart.height / 2 + ')'">
+                      {{ lineChart.axisTitle }}
+                    </text>
+                  </svg>
+                </ng-container>
               </div>
             </div>
           </ng-container>
@@ -158,7 +267,6 @@
 
       <footer>
         <button type="button" class="btn small action-button" (click)="refreshLocation(location.id)" [disabled]="vm.loading">Refresh</button>
-        <a class="btn small ghost" [routerLink]="['/forecast', location.id]">Forecast</a>
         <button type="button" class="btn small danger" (click)="deleteLocation(location.id)" [disabled]="vm.loading">Remove</button>
       </footer>
     </article>

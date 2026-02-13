@@ -2,17 +2,20 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { BehaviorSubject, combineLatest, finalize, map, startWith } from 'rxjs';
 import {
   CurrentWeatherDto,
+  DailyWeatherPointDto,
   LocationDto,
   NextFiveDayForecastDto,
+  SyncOperationDto,
   TemperatureUnit,
   UserPreferencesDto
 } from '../../core/models';
 import { WeatherVisualService } from '../../core/services/weather-visual.service';
 import { WeatherStoreService } from '../../core/store/weather-store.service';
+
+type CountryMetricKey = 'temperature' | 'humidity' | 'windSpeed';
 
 interface DashboardViewModel {
   locations: LocationDto[];
@@ -21,6 +24,8 @@ interface DashboardViewModel {
   countryForecasts: Record<string, CountryForecastState>;
   countryForecastLoading: Record<string, boolean>;
   expandedCountries: Record<string, boolean>;
+  selectedCountryMetric: Partial<Record<string, CountryMetricKey>>;
+  syncHistory: SyncOperationDto[];
   preferences: UserPreferencesDto | null;
   loading: boolean;
   error: string | null;
@@ -36,30 +41,53 @@ interface CountryCardViewModel {
 
 interface CountryForecastState {
   forecast: NextFiveDayForecastDto;
-  chart: ForecastChartViewModel;
+  barChart: CountryClusteredBarChartViewModel;
+  lineCharts: Record<CountryMetricKey, SingleMetricLineChartViewModel>;
 }
 
-interface ForecastChartViewModel {
+interface CountryClusteredBarChartViewModel {
+  width: number;
+  height: number;
+  padding: number;
+  yAxis: { y: number; label: string }[];
+  groups: CountryBarGroupViewModel[];
+  legend: { label: string; color: string }[];
+}
+
+interface CountryBarGroupViewModel {
+  label: string;
+  labelX: number;
+  bars: CountryBarViewModel[];
+}
+
+interface CountryBarViewModel {
+  metric: CountryMetricKey;
+  color: string;
+  valueLabel: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface SingleMetricLineChartViewModel {
+  metric: CountryMetricKey;
+  label: string;
+  axisTitle: string;
+  color: string;
   width: number;
   height: number;
   padding: number;
   xAxis: { label: string; x: number }[];
-  gridLines: { y: number; label: string }[];
-  series: ForecastSeriesViewModel[];
-}
-
-interface ForecastSeriesViewModel {
-  key: string;
-  label: string;
-  color: string;
+  yAxis: { y: number; label: string }[];
   points: string;
-  dots: { x: number; y: number }[];
+  dots: { x: number; y: number; valueLabel: string }[];
 }
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
@@ -71,6 +99,13 @@ export class DashboardComponent implements OnInit {
   private readonly countryForecastsSubject = new BehaviorSubject<Record<string, CountryForecastState>>({});
   private readonly countryForecastLoadingSubject = new BehaviorSubject<Record<string, boolean>>({});
   private readonly expandedCountriesSubject = new BehaviorSubject<Record<string, boolean>>({});
+  private readonly selectedCountryMetricSubject = new BehaviorSubject<Partial<Record<string, CountryMetricKey>>>({});
+
+  private readonly metricPalette: Record<CountryMetricKey, string> = {
+    temperature: '#e07a2f',
+    humidity: '#2b8cc4',
+    windSpeed: '#4a9d5b'
+  };
 
   readonly addCityForm = this.fb.group({
     city: ['', [Validators.required, Validators.maxLength(128)]],
@@ -87,13 +122,27 @@ export class DashboardComponent implements OnInit {
     locations: this.store.locations$,
     weather: this.store.currentWeather$,
     preferences: this.store.preferences$,
+    syncHistory: this.store.syncHistory$,
     loading: this.store.isLoading$,
     error: this.store.error$,
     countryForecasts: this.countryForecastsSubject,
     countryForecastLoading: this.countryForecastLoadingSubject,
-    expandedCountries: this.expandedCountriesSubject
+    expandedCountries: this.expandedCountriesSubject,
+    selectedCountryMetric: this.selectedCountryMetricSubject
   }).pipe(
-    map(({ locations, weather, preferences, loading, error, countryForecasts, countryForecastLoading, expandedCountries }) => {
+    map(
+      ({
+        locations,
+        weather,
+        preferences,
+        syncHistory,
+        loading,
+        error,
+        countryForecasts,
+        countryForecastLoading,
+        expandedCountries,
+        selectedCountryMetric
+      }) => {
       const weatherByLocation = weather
         .filter((item) => item.locationId !== null)
         .reduce<Record<number, CurrentWeatherDto>>((acc, item) => {
@@ -109,11 +158,14 @@ export class DashboardComponent implements OnInit {
         countryForecasts,
         countryForecastLoading,
         expandedCountries,
+        selectedCountryMetric,
+        syncHistory,
         preferences,
         loading,
         error
       } satisfies DashboardViewModel;
-    })
+      }
+    )
   );
 
   ngOnInit(): void {
@@ -233,21 +285,33 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  getSyncOperationTypeLabel(type: SyncOperationDto['type']): string {
+    return type === 'RefreshAll' ? 'Refresh all' : 'Location refresh';
+  }
+
   getIconUrl(iconCode: string): string {
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
   }
 
-  toggleCountryForecast(card: CountryCardViewModel): void {
+  toggleCountryCard(card: CountryCardViewModel): void {
     if (!card.locationId) {
       return;
     }
 
     const key = card.country;
-    const expanded = { ...this.expandedCountriesSubject.value, [key]: !this.expandedCountriesSubject.value[key] };
+    const wasExpanded = this.expandedCountriesSubject.value[key];
+    const expanded = { ...this.expandedCountriesSubject.value, [key]: !wasExpanded };
     this.expandedCountriesSubject.next(expanded);
 
     if (!expanded[key]) {
       return;
+    }
+
+    if (!this.selectedCountryMetricSubject.value[key]) {
+      this.selectedCountryMetricSubject.next({
+        ...this.selectedCountryMetricSubject.value,
+        [key]: 'temperature'
+      });
     }
 
     if (this.countryForecastsSubject.value[key]) {
@@ -263,13 +327,52 @@ export class DashboardComponent implements OnInit {
       )
       .subscribe({
         next: (forecast) => {
-          const chart = this.buildForecastChart(forecast);
+          const barChart = this.buildCountryBarChart(forecast);
+          const lineCharts = this.buildCountryLineCharts(forecast);
           this.countryForecastsSubject.next({
             ...this.countryForecastsSubject.value,
-            [key]: { forecast, chart }
+            [key]: { forecast, barChart, lineCharts }
           });
         }
       });
+  }
+
+  onCountryCardKeydown(event: KeyboardEvent, card: CountryCardViewModel): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this.toggleCountryCard(card);
+  }
+
+  selectCountryMetric(country: string, metric: CountryMetricKey, event: Event): void {
+    event.stopPropagation();
+    this.selectedCountryMetricSubject.next({
+      ...this.selectedCountryMetricSubject.value,
+      [country]: metric
+    });
+  }
+
+  isMetricSelected(
+    country: string,
+    metric: CountryMetricKey,
+    selectedMetrics: Partial<Record<string, CountryMetricKey>>
+  ): boolean {
+    return (selectedMetrics[country] ?? 'temperature') === metric;
+  }
+
+  getMetricButtonLabel(metric: CountryMetricKey): string {
+    switch (metric) {
+      case 'temperature':
+        return 'Temperature';
+      case 'humidity':
+        return 'Humidity';
+      case 'windSpeed':
+        return 'Wind';
+      default:
+        return metric;
+    }
   }
 
   trackByCountry(index: number, item: CountryCardViewModel): string {
@@ -311,19 +414,121 @@ export class DashboardComponent implements OnInit {
       .sort((a, b) => a.country.localeCompare(b.country));
   }
 
-  private buildForecastChart(forecast: NextFiveDayForecastDto): ForecastChartViewModel {
-    const width = 680;
-    const height = 240;
-    const padding = 44;
+  private buildCountryBarChart(forecast: NextFiveDayForecastDto): CountryClusteredBarChartViewModel {
+    const width = 720;
+    const height = 300;
+    const padding = 48;
 
     if (forecast.days.length === 0) {
       return {
         width,
         height,
         padding,
+        yAxis: [],
+        groups: [],
+        legend: [
+          { label: `Temperature (${this.getTempUnit(forecast.units)})`, color: this.metricPalette.temperature },
+          { label: 'Humidity (%)', color: this.metricPalette.humidity },
+          { label: `Wind (${this.getWindUnit(forecast.units)})`, color: this.metricPalette.windSpeed }
+        ]
+      };
+    }
+
+    const metrics: CountryMetricKey[] = ['temperature', 'humidity', 'windSpeed'];
+    const maxByMetric = metrics.reduce<Record<CountryMetricKey, number>>(
+      (acc, metric) => {
+        const values = forecast.days.map((day) => this.getMetricValue(day, metric));
+        acc[metric] = Math.max(...values, 1);
+        return acc;
+      },
+      { temperature: 1, humidity: 1, windSpeed: 1 }
+    );
+
+    const chartHeight = height - padding * 2;
+    const chartWidth = width - padding * 2;
+    const groupWidth = chartWidth / forecast.days.length;
+    const barGap = Math.max(4, Math.min(10, groupWidth * 0.06));
+    const barWidth = Math.max(12, Math.min(20, (groupWidth - barGap * 4) / 3));
+    const clusterWidth = barWidth * 3 + barGap * 2;
+
+    const groups = forecast.days.map((day, index) => {
+      const centerX = padding + groupWidth * index + groupWidth / 2;
+      const startX = centerX - clusterWidth / 2;
+      const label = new Date(day.dateUtc).toLocaleDateString(undefined, { weekday: 'short' });
+
+      const bars = metrics.map((metric, metricIndex) => {
+        const value = this.getMetricValue(day, metric);
+        const normalized = maxByMetric[metric] === 0 ? 0 : value / maxByMetric[metric];
+        const barHeight = normalized * chartHeight;
+        const x = startX + metricIndex * (barWidth + barGap);
+        const y = height - padding - barHeight;
+
+        return {
+          metric,
+          color: this.metricPalette[metric],
+          valueLabel: this.formatMetricValue(metric, value, forecast.units),
+          x,
+          y,
+          width: barWidth,
+          height: barHeight
+        };
+      });
+
+      return { label, labelX: centerX, bars };
+    });
+
+    const yAxis = Array.from({ length: 5 }, (_, index) => {
+      const ratio = index / 4;
+      const y = padding + ratio * chartHeight;
+      const value = 100 - ratio * 100;
+      return { y, label: `${Math.round(value)}%` };
+    });
+
+    return {
+      width,
+      height,
+      padding,
+      yAxis,
+      groups,
+      legend: [
+        { label: `Temperature (${this.getTempUnit(forecast.units)})`, color: this.metricPalette.temperature },
+        { label: 'Humidity (%)', color: this.metricPalette.humidity },
+        { label: `Wind (${this.getWindUnit(forecast.units)})`, color: this.metricPalette.windSpeed }
+      ]
+    };
+  }
+
+  private buildCountryLineCharts(forecast: NextFiveDayForecastDto): Record<CountryMetricKey, SingleMetricLineChartViewModel> {
+    return {
+      temperature: this.buildSingleMetricLineChart(forecast, 'temperature'),
+      humidity: this.buildSingleMetricLineChart(forecast, 'humidity'),
+      windSpeed: this.buildSingleMetricLineChart(forecast, 'windSpeed')
+    };
+  }
+
+  private buildSingleMetricLineChart(
+    forecast: NextFiveDayForecastDto,
+    metric: CountryMetricKey
+  ): SingleMetricLineChartViewModel {
+    const width = 680;
+    const height = 250;
+    const padding = 44;
+    const color = this.metricPalette[metric];
+    const label = this.getMetricLabel(metric, forecast.units);
+
+    if (forecast.days.length === 0) {
+      return {
+        metric,
+        label,
+        axisTitle: label,
+        color,
+        width,
+        height,
+        padding,
         xAxis: [],
-        gridLines: [],
-        series: []
+        yAxis: [],
+        points: '',
+        dots: []
       };
     }
 
@@ -332,35 +537,36 @@ export class DashboardComponent implements OnInit {
     );
     const xStep = labels.length > 1 ? (width - padding * 2) / (labels.length - 1) : 0;
 
-    const tempValues = forecast.days.map((day) => day.temperature);
-    const feelsValues = forecast.days.map((day) => day.feelsLike);
-    const allValues = [...tempValues, ...feelsValues];
-    const minValue = Math.min(...allValues);
-    const maxValue = Math.max(...allValues);
-    const span = maxValue - minValue || 1;
+    const values = forecast.days.map((day) => this.getMetricValue(day, metric));
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const minBaseline = minValue - Math.max(1, (maxValue - minValue) * 0.12);
+    const maxBaseline = maxValue + Math.max(1, (maxValue - minValue) * 0.12);
+    const span = maxBaseline - minBaseline || 1;
 
     const toPoint = (value: number, index: number): { x: number; y: number } => {
       const x = labels.length > 1 ? padding + index * xStep : width / 2;
-      const y = height - padding - ((value - minValue) / span) * (height - padding * 2);
+      const y = height - padding - ((value - minBaseline) / span) * (height - padding * 2);
       return { x, y };
     };
 
-    const buildSeries = (key: string, label: string, color: string, values: number[]): ForecastSeriesViewModel => {
-      const dots = values.map((value, index) => toPoint(value, index));
-      const points = dots.map((dot) => `${dot.x.toFixed(1)},${dot.y.toFixed(1)}`).join(' ');
-      return { key, label, color, points, dots };
-    };
+    const dots = values.map((value, index) => {
+      const point = toPoint(value, index);
+      return {
+        ...point,
+        valueLabel: this.formatMetricValue(metric, value, forecast.units)
+      };
+    });
+    const points = dots.map((dot) => `${dot.x.toFixed(1)},${dot.y.toFixed(1)}`).join(' ');
 
-    const series: ForecastSeriesViewModel[] = [
-      buildSeries('temp', `Temperature (${this.getTempUnit(forecast.units)})`, '#e07a2f', tempValues),
-      buildSeries('feels', `Feels Like (${this.getTempUnit(forecast.units)})`, '#2b8cc4', feelsValues)
-    ];
-
-    const gridLines = Array.from({ length: 5 }, (_, index) => {
+    const yAxis = Array.from({ length: 5 }, (_, index) => {
       const ratio = index / 4;
       const y = padding + ratio * (height - padding * 2);
-      const value = maxValue - ratio * span;
-      return { y, label: value.toFixed(1) };
+      const value = maxBaseline - ratio * span;
+      return {
+        y,
+        label: this.formatMetricAxisValue(metric, value)
+      };
     });
 
     const xAxis = labels.map((label, index) => {
@@ -369,12 +575,64 @@ export class DashboardComponent implements OnInit {
     });
 
     return {
+      metric,
+      label,
+      axisTitle: label,
+      color,
       width,
       height,
       padding,
       xAxis,
-      gridLines,
-      series
+      yAxis,
+      points,
+      dots
     };
+  }
+
+  private getMetricValue(day: DailyWeatherPointDto, metric: CountryMetricKey): number {
+    switch (metric) {
+      case 'temperature':
+        return day.temperature;
+      case 'humidity':
+        return day.humidity;
+      case 'windSpeed':
+        return day.windSpeed;
+      default:
+        return day.temperature;
+    }
+  }
+
+  private getMetricLabel(metric: CountryMetricKey, units: TemperatureUnit): string {
+    switch (metric) {
+      case 'temperature':
+        return `Temperature (${this.getTempUnit(units)})`;
+      case 'humidity':
+        return 'Humidity (%)';
+      case 'windSpeed':
+        return `Wind (${this.getWindUnit(units)})`;
+      default:
+        return metric;
+    }
+  }
+
+  private formatMetricAxisValue(metric: CountryMetricKey, value: number): string {
+    if (metric === 'humidity') {
+      return `${Math.round(value)}`;
+    }
+
+    return value.toFixed(1);
+  }
+
+  private formatMetricValue(metric: CountryMetricKey, value: number, units: TemperatureUnit): string {
+    switch (metric) {
+      case 'temperature':
+        return `${value.toFixed(1)}${this.getTempUnit(units)}`;
+      case 'humidity':
+        return `${Math.round(value)}%`;
+      case 'windSpeed':
+        return `${value.toFixed(1)} ${this.getWindUnit(units)}`;
+      default:
+        return value.toFixed(1);
+    }
   }
 }

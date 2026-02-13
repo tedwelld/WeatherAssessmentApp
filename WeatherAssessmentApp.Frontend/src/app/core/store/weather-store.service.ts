@@ -5,6 +5,7 @@ import {
   CreateLocationRequest,
   CurrentWeatherDto,
   LocationDto,
+  SyncOperationDto,
   WeatherTimelineDto,
   NextFiveDayForecastDto,
   UpdateLocationRequest,
@@ -18,12 +19,14 @@ export class WeatherStoreService {
   private readonly locationsSubject = new BehaviorSubject<LocationDto[]>([]);
   private readonly currentWeatherSubject = new BehaviorSubject<CurrentWeatherDto[]>([]);
   private readonly preferencesSubject = new BehaviorSubject<UserPreferencesDto | null>(null);
+  private readonly syncHistorySubject = new BehaviorSubject<SyncOperationDto[]>([]);
   private readonly isLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
 
   readonly locations$ = this.locationsSubject.asObservable();
   readonly currentWeather$ = this.currentWeatherSubject.asObservable();
   readonly preferences$ = this.preferencesSubject.asObservable();
+  readonly syncHistory$ = this.syncHistorySubject.asObservable();
   readonly isLoading$ = this.isLoadingSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
 
@@ -36,12 +39,14 @@ export class WeatherStoreService {
     return forkJoin({
       locations: this.api.getLocations(),
       weather: this.api.getTrackedCurrentWeather(),
-      preferences: this.api.getPreferences()
+      preferences: this.api.getPreferences(),
+      syncHistory: this.api.getSyncHistory()
     }).pipe(
-      tap(({ locations, weather, preferences }) => {
+      tap(({ locations, weather, preferences, syncHistory }) => {
         this.locationsSubject.next(locations);
         this.currentWeatherSubject.next(weather);
         this.preferencesSubject.next(preferences);
+        this.syncHistorySubject.next(syncHistory);
       }),
       map(() => void 0),
       catchError((error) => this.handleError(error)),
@@ -146,12 +151,14 @@ export class WeatherStoreService {
     return forkJoin({
       locations: this.api.getLocations(),
       weather: this.api.getTrackedCurrentWeather(),
-      preferences: this.api.getPreferences()
+      preferences: this.api.getPreferences(),
+      syncHistory: this.api.getSyncHistory()
     }).pipe(
-      tap(({ locations, weather, preferences }) => {
+      tap(({ locations, weather, preferences, syncHistory }) => {
         this.locationsSubject.next(locations);
         this.currentWeatherSubject.next(weather);
         this.preferencesSubject.next(preferences);
+        this.syncHistorySubject.next(syncHistory);
       }),
       map(() => void 0),
       catchError((error) => this.handleError(error))

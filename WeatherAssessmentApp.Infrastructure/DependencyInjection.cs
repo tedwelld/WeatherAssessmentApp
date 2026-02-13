@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<ILocationRepository, LocationRepository>();
         services.AddScoped<IWeatherSnapshotRepository, WeatherSnapshotRepository>();
         services.AddScoped<IUserPreferencesRepository, UserPreferencesRepository>();
+        services.AddScoped<ISyncOperationRepository, SyncOperationRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddHostedService<WeatherSyncBackgroundService>();

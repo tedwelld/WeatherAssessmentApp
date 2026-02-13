@@ -71,6 +71,62 @@ h1 {
   font-weight: 700;
 }
 
+.sync-history {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.sync-history header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.sync-history h2 {
+  margin: 0;
+}
+
+.sync-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.sync-item {
+  border-radius: 14px;
+  border: 1px solid rgba(188, 223, 244, 0.76);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(235, 248, 255, 0.42));
+  padding: 0.7rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sync-type {
+  margin: 0;
+  font-weight: 700;
+  color: #16425f;
+}
+
+.sync-location {
+  margin: 0.2rem 0 0;
+  color: rgba(18, 59, 85, 0.74);
+  font-size: 0.9rem;
+}
+
+.sync-meta {
+  text-align: right;
+  color: rgba(18, 59, 85, 0.7);
+  font-size: 0.85rem;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.sync-meta p {
+  margin: 0;
+}
+
 .country-forecasts {
   display: grid;
   gap: 0.9rem;
@@ -98,6 +154,29 @@ h1 {
   border: 1px solid rgba(200, 230, 248, 0.6);
   display: grid;
   gap: 0.85rem;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.country-card.clickable {
+  cursor: pointer;
+}
+
+.country-card.clickable:hover {
+  transform: translateY(-1px);
+  border-color: rgba(143, 196, 226, 0.92);
+  box-shadow: 0 11px 20px rgba(31, 74, 102, 0.16);
+}
+
+.country-card.clickable:focus-visible {
+  outline: 3px solid rgba(56, 141, 190, 0.34);
+  outline-offset: 2px;
+}
+
+.country-card.expanded {
+  border-color: rgba(122, 186, 219, 0.96);
 }
 
 .country-header {
@@ -116,6 +195,10 @@ h1 {
 .country-header p {
   margin: 0.2rem 0 0;
   color: rgba(21, 65, 92, 0.7);
+}
+
+.card-state {
+  text-align: right;
 }
 
 .country-body {
@@ -167,9 +250,10 @@ h1 {
 
 .forecast-chart {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.7rem;
 }
 
+.bar-chart,
 .line-chart {
   width: 100%;
   height: auto;
@@ -198,6 +282,17 @@ h1 {
   stroke-width: 1.4;
 }
 
+.bar {
+  opacity: 0.9;
+}
+
+.bar-label,
+.dot-label {
+  font-size: 9px;
+  fill: rgba(18, 59, 85, 0.76);
+  text-anchor: middle;
+}
+
 .x-label,
 .y-label {
   font-size: 10px;
@@ -213,6 +308,33 @@ h1 {
   font-weight: 600;
   fill: rgba(18, 59, 85, 0.78);
   text-anchor: middle;
+}
+
+.line-panel {
+  border-radius: 14px;
+  border: 1px solid rgba(188, 223, 244, 0.76);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(235, 248, 255, 0.42));
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.metric-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.metric-tab {
+  border-color: rgba(178, 219, 243, 0.74);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(236, 249, 255, 0.42));
+  color: #1b4a66;
+}
+
+.metric-tab.active {
+  background: linear-gradient(130deg, rgba(36, 123, 173, 0.95), rgba(24, 94, 140, 0.9));
+  border-color: rgba(179, 222, 245, 0.74);
+  color: #f3fbff;
 }
 
 .legend {
@@ -405,5 +527,13 @@ select:focus {
   .intro {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .sync-item {
+    flex-direction: column;
+  }
+
+  .sync-meta {
+    text-align: left;
   }
 }
